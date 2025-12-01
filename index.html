@@ -17,6 +17,7 @@
         <div class="tabs">
             <button class="tab-btn active" data-tab="picker">Color Picker</button>
             <button class="tab-btn" data-tab="products">Paint Colors</button>
+            <button class="tab-btn" data-tab="vallejo">Vallejo Model</button>
             <button class="tab-btn" data-tab="planning">Planning</button>
         </div>
 
@@ -63,10 +64,20 @@
             </div>
 
             <div class="palette-section">
-                <div class="palette-header">
-                    <h2>Your Palette</h2>
+            <div class="palette-header">
+                <h2>Your Palette</h2>
+                <div class="palette-controls">
+                    <select id="sortOrderSelect" class="sort-order-select">
+                        <option value="hsv">Hue-Saturation-Value</option>
+                        <option value="hvs">Hue-Value-Saturation</option>
+                        <option value="shv">Saturation-Hue-Value</option>
+                        <option value="svh">Saturation-Value-Hue</option>
+                        <option value="vhs">Value-Hue-Saturation</option>
+                        <option value="vsh">Value-Saturation-Hue</option>
+                    </select>
                     <button class="show-wheel-btn" id="showWheelBtn">Show Wheel</button>
                 </div>
+            </div>
                 <div class="palette-grid" id="paletteGrid">
                     <p class="empty-message">No colors saved yet. Upload an image and start picking!</p>
                 </div>
@@ -94,6 +105,26 @@
             </div>
         </div>
 
+        <!-- Vallejo Model Colors Tab -->
+        <div class="tab-content" id="vallejoTab">
+            <div class="vallejo-section">
+                <h2>Vallejo Model Colors</h2>
+                <div class="table-container">
+                    <table id="vallejoTable">
+                        <thead>
+                            <tr>
+                                <th>Colour</th>
+                                <th>Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- Planning Tab -->
         <div class="tab-content" id="planningTab">
             <div class="planning-section">
@@ -102,7 +133,28 @@
                     <table id="planningTable">
                         <thead>
                             <tr>
-                                <th>Colour</th>
+                                <th>
+                                    <div class="table-header-with-controls">
+                                        <span>Colour</span>
+                                        <select id="sortOrderSelectPlanning" class="sort-order-select">
+                                            <option value="hsv">Hue-Saturation-Value</option>
+                                            <option value="hvs">Hue-Value-Saturation</option>
+                                            <option value="shv">Saturation-Hue-Value</option>
+                                            <option value="svh">Saturation-Value-Hue</option>
+                                            <option value="vhs">Value-Hue-Saturation</option>
+                                            <option value="vsh">Value-Saturation-Hue</option>
+                                        </select>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="table-header-with-controls">
+                                        <span>Candidate</span>
+                                        <select id="candidateSourceSelect" class="sort-order-select">
+                                            <option value="products">PRODUCTS_DATA</option>
+                                            <option value="vallejo">Vallejo Model</option>
+                                        </select>
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -126,18 +178,12 @@
                         <canvas id="magnifyingGlassCanvas"></canvas>
                     </div>
                 </div>
-                <div class="color-wheel-info">
-                    <div class="color-wheel-preview" id="colorWheelPreview"></div>
-                    <div class="color-wheel-values">
-                        <div id="colorWheelHex">#000000</div>
-                        <div id="colorWheelRGB">rgb(0, 0, 0)</div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 
     <script src="products_data.js"></script>
+    <script src="vallejo_model_colours_data.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

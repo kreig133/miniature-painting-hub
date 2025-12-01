@@ -15,6 +15,8 @@ const copyButtons = document.querySelectorAll('.copy-btn');
 // State
 let currentColor = null;
 let palette = JSON.parse(localStorage.getItem('colorPalette')) || [];
+let sortOrder = localStorage.getItem('colorSortOrder') || 'hsv'; // Default: Hue-Saturation-Value
+let candidateSource = localStorage.getItem('candidateSource') || 'products'; // Default: PRODUCTS_DATA
 let ctx = imageCanvas.getContext('2d');
 let colorWheelCanvas = null;
 let colorWheelCtx = null;
@@ -24,11 +26,17 @@ let colorWheelRadius = 0;
 let palettePointPositions = []; // Store positions of palette points on the wheel
 
 // Initialize
+// Sort palette with saved sort order on load
+palette = sortPaletteByHSV(palette, sortOrder);
+savePalette(); // Save the sorted palette
 loadPalette();
 initColorWheel();
 initTabs();
 loadProducts();
+loadVallejoColors();
 loadPlanningTable();
+initSortOrder();
+initCandidateSource();
 
 // Initialize floating wheel - use setTimeout to ensure DOM is fully ready
 setTimeout(() => {
@@ -131,7 +139,7 @@ saveColorBtn.addEventListener('click', () => {
     
     palette.push({ ...currentColor });
     // Sort palette using HSV color space
-    palette = sortPaletteByHSV(palette);
+    palette = sortPaletteByHSV(palette, sortOrder);
     savePalette();
     loadPalette();
     
@@ -242,7 +250,7 @@ function createPaletteItem(color, index) {
         e.stopPropagation();
         palette.splice(index, 1);
         // Re-sort palette after deletion to maintain order
-        palette = sortPaletteByHSV(palette);
+        palette = sortPaletteByHSV(palette, sortOrder);
         savePalette();
         loadPalette();
         
@@ -316,6 +324,32 @@ function rgbToHSV(r, g, b) {
     return { h, s, v };
 }
 
+// Calculate distance in HSV color space
+// Hue difference is multiplied by 4 and handles circular wraparound
+function hsvDistance(hsv1, hsv2) {
+    // Calculate hue difference with wraparound (hue is circular 0-360)
+    let hueDiff = Math.abs(hsv1.h - hsv2.h);
+    if (hueDiff > 180) {
+        hueDiff = 360 - hueDiff; // Take the shorter path around the circle
+    }
+    
+    // Multiply hue difference by 3
+    const weightedHueDiff = hueDiff * 3;
+    
+    // Calculate saturation and value differences (0-1 range)
+    const satDiff = hsv1.s - hsv2.s;
+    const valDiff = hsv1.v - hsv2.v;
+    
+    // Calculate Euclidean distance in HSV space
+    const distance = Math.sqrt(
+        Math.pow(weightedHueDiff, 2) +
+        Math.pow(satDiff, 2) +
+        Math.pow(valDiff, 2)
+    );
+    
+    return distance;
+}
+
 // Convert HSV to RGB
 function hsvToRGB(h, s, v) {
     h = h % 360;
@@ -365,7 +399,7 @@ function generateValueGradient(hue, saturation) {
 }
 
 // Sort palette using HSV color space (Hue, Saturation, Value)
-function sortPaletteByHSV(colors) {
+function sortPaletteByHSV(colors, sortOrder = 'hsv') {
     if (colors.length <= 1) return colors;
     
     // Convert colors to include HSV values and sort
@@ -374,18 +408,51 @@ function sortPaletteByHSV(colors) {
         hsv: rgbToHSV(color.r, color.g, color.b)
     }));
     
-    // Sort by Hue first, then Saturation, then Value
+    // Define sort order based on parameter
+    // sortOrder is a string like 'hsv', 'hvs', 'shv', etc.
+    const order = sortOrder.toLowerCase();
+    
     colorsWithHSV.sort((a, b) => {
-        // Primary sort: Hue (0-360)
-        if (Math.abs(a.hsv.h - b.hsv.h) > 0.01) {
-            return a.hsv.h - b.hsv.h;
+        // Helper function to compare two HSV values based on order
+        const compare = (val1, val2, reverse = false) => {
+            const diff = val1 - val2;
+            // Use threshold to avoid floating point precision issues
+            if (Math.abs(diff) > 0.01) {
+                return reverse ? -diff : diff;
+            }
+            return null; // Values are equal
+        };
+        
+        // Primary sort
+        let result = null;
+        if (order[0] === 'h') {
+            result = compare(a.hsv.h, b.hsv.h);
+        } else if (order[0] === 's') {
+            result = compare(a.hsv.s, b.hsv.s, true); // Higher saturation first
+        } else if (order[0] === 'v') {
+            result = compare(a.hsv.v, b.hsv.v, true); // Higher value first
         }
-        // Secondary sort: Saturation (0-1)
-        if (Math.abs(a.hsv.s - b.hsv.s) > 0.01) {
-            return b.hsv.s - a.hsv.s; // Higher saturation first
+        if (result !== null) return result;
+        
+        // Secondary sort
+        if (order[1] === 'h') {
+            result = compare(a.hsv.h, b.hsv.h);
+        } else if (order[1] === 's') {
+            result = compare(a.hsv.s, b.hsv.s, true);
+        } else if (order[1] === 'v') {
+            result = compare(a.hsv.v, b.hsv.v, true);
         }
-        // Tertiary sort: Value (0-1)
-        return b.hsv.v - a.hsv.v; // Higher value (brighter) first
+        if (result !== null) return result;
+        
+        // Tertiary sort
+        if (order[2] === 'h') {
+            result = compare(a.hsv.h, b.hsv.h);
+        } else if (order[2] === 's') {
+            result = compare(a.hsv.s, b.hsv.s, true);
+        } else if (order[2] === 'v') {
+            result = compare(a.hsv.v, b.hsv.v, true);
+        }
+        return result !== null ? result : 0;
     });
     
     // Return colors without HSV property
@@ -985,6 +1052,122 @@ function loadProducts() {
     });
 }
 
+// Load Vallejo Model Colors
+function loadVallejoColors() {
+    const vallejoTable = document.getElementById('vallejoTable');
+    if (!vallejoTable) return;
+
+    const tbody = vallejoTable.querySelector('tbody');
+    if (!tbody) return;
+
+    // Check if VALLEJO_MODEL_COLORS is available
+    if (typeof VALLEJO_MODEL_COLORS === 'undefined') {
+        tbody.innerHTML = '<tr><td colspan="2">Error loading Vallejo colors. Please make sure vallejo_model_colours_data.js is loaded.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = '';
+
+    VALLEJO_MODEL_COLORS.forEach(color => {
+        const row = document.createElement('tr');
+        
+        // Colour column
+        const colorCell = document.createElement('td');
+        const colorBox = document.createElement('div');
+        colorBox.className = 'color-box';
+        colorBox.style.backgroundColor = color.hex;
+        colorCell.appendChild(colorBox);
+        
+        // Name column
+        const nameCell = document.createElement('td');
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'paint-name';
+        nameSpan.textContent = `${color.name_en}(${color.code})`;
+        nameCell.appendChild(nameSpan);
+        
+        row.appendChild(colorCell);
+        row.appendChild(nameCell);
+        tbody.appendChild(row);
+    });
+}
+
+// Find closest color from specified data source
+function findClosestColor(targetColor, source = candidateSource) {
+    let dataSource = null;
+    
+    if (source === 'products') {
+        if (typeof PRODUCTS_DATA === 'undefined' || !PRODUCTS_DATA || PRODUCTS_DATA.length === 0) {
+            return null;
+        }
+        dataSource = PRODUCTS_DATA;
+    } else if (source === 'vallejo') {
+        if (typeof VALLEJO_MODEL_COLORS === 'undefined' || !VALLEJO_MODEL_COLORS || VALLEJO_MODEL_COLORS.length === 0) {
+            return null;
+        }
+        dataSource = VALLEJO_MODEL_COLORS;
+    } else {
+        return null;
+    }
+
+    // Convert target color to HSV
+    const targetHSV = rgbToHSV(targetColor.r, targetColor.g, targetColor.b);
+    const targetSaturation = targetHSV.s;
+
+    let closestMatch = null;
+    let minDistance = Infinity;
+
+    // First pass: try to find match with saturation filter
+    dataSource.forEach(item => {
+        // Convert hex to RGB
+        const hex = item.hex.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+
+        // Convert candidate color to HSV
+        const candidateHSV = rgbToHSV(r, g, b);
+        
+        // Ignore colors with saturation less than target saturation
+        if (candidateHSV.s < targetSaturation) {
+            return; // Skip this color
+        }
+
+        // Calculate distance in HSV color space
+        const distance = hsvDistance(targetHSV, candidateHSV);
+
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestMatch = item;
+        }
+    });
+
+    // If no match found with saturation filter, try without filter
+    if (closestMatch === null) {
+        minDistance = Infinity;
+        
+        dataSource.forEach(item => {
+            // Convert hex to RGB
+            const hex = item.hex.replace('#', '');
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+
+            // Convert candidate color to HSV
+            const candidateHSV = rgbToHSV(r, g, b);
+
+            // Calculate distance in HSV color space
+            const distance = hsvDistance(targetHSV, candidateHSV);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestMatch = item;
+            }
+        });
+    }
+
+    return closestMatch;
+}
+
 // Load planning table
 function loadPlanningTable() {
     const planningTable = document.getElementById('planningTable');
@@ -1000,6 +1183,7 @@ function loadPlanningTable() {
         if (palette.length === 0) {
             const row = document.createElement('tr');
             const cell = document.createElement('td');
+            cell.colSpan = 2;
             cell.textContent = 'No colors in palette yet. Add colors from the Color Picker tab.';
             row.appendChild(cell);
             tbody.appendChild(row);
@@ -1008,12 +1192,45 @@ function loadPlanningTable() {
 
         palette.forEach(color => {
             const row = document.createElement('tr');
-            const cell = document.createElement('td');
+            
+            // Colour column
+            const colorCell = document.createElement('td');
             const colorBox = document.createElement('div');
             colorBox.className = 'color-box';
             colorBox.style.backgroundColor = color.hex;
-            cell.appendChild(colorBox);
-            row.appendChild(cell);
+            colorCell.appendChild(colorBox);
+            row.appendChild(colorCell);
+            
+            // Candidate column
+            const candidateCell = document.createElement('td');
+            const closestMatch = findClosestColor(color, candidateSource);
+            
+            if (closestMatch) {
+                const candidateColorBox = document.createElement('div');
+                candidateColorBox.className = 'color-box';
+                candidateColorBox.style.backgroundColor = closestMatch.hex;
+                
+                const candidateName = document.createElement('span');
+                candidateName.className = 'candidate-name';
+                
+                // Format name based on data source
+                if (candidateSource === 'products') {
+                    candidateName.textContent = (closestMatch.line || '') + (closestMatch.name || '');
+                } else if (candidateSource === 'vallejo') {
+                    candidateName.textContent = `${closestMatch.name_en}(${closestMatch.code})`;
+                }
+                
+                const candidateContainer = document.createElement('div');
+                candidateContainer.className = 'candidate-container';
+                candidateContainer.appendChild(candidateColorBox);
+                candidateContainer.appendChild(candidateName);
+                
+                candidateCell.appendChild(candidateContainer);
+            } else {
+                candidateCell.textContent = 'No match found';
+            }
+            
+            row.appendChild(candidateCell);
             tbody.appendChild(row);
         });
     }
@@ -1024,5 +1241,75 @@ function loadPlanningTable() {
     // Update when palette changes - we'll need to call this from saveColorToPalette
     // Store the update function globally so it can be called
     window.updatePlanningTable = updatePlanningTable;
+}
+
+// Initialize sort order dropdown
+function initSortOrder() {
+    const sortOrderSelect = document.getElementById('sortOrderSelect');
+    const sortOrderSelectPlanning = document.getElementById('sortOrderSelectPlanning');
+    
+    // Function to handle sort order change
+    const handleSortOrderChange = (newSortOrder) => {
+        sortOrder = newSortOrder;
+        localStorage.setItem('colorSortOrder', sortOrder);
+        
+        // Update both dropdowns to stay in sync
+        if (sortOrderSelect) {
+            sortOrderSelect.value = sortOrder;
+        }
+        if (sortOrderSelectPlanning) {
+            sortOrderSelectPlanning.value = sortOrder;
+        }
+        
+        // Re-sort the palette with the new order
+        palette = sortPaletteByHSV(palette, sortOrder);
+        savePalette();
+        loadPalette();
+        
+        // Update planning table
+        if (window.updatePlanningTable) {
+            window.updatePlanningTable();
+        }
+        
+        // Update color wheel
+        if (colorWheelCanvas) {
+            drawPalettePointsOnWheel();
+        }
+    };
+
+    // Set the saved sort order for both dropdowns
+    if (sortOrderSelect) {
+        sortOrderSelect.value = sortOrder;
+        sortOrderSelect.addEventListener('change', (e) => {
+            handleSortOrderChange(e.target.value);
+        });
+    }
+
+    if (sortOrderSelectPlanning) {
+        sortOrderSelectPlanning.value = sortOrder;
+        sortOrderSelectPlanning.addEventListener('change', (e) => {
+            handleSortOrderChange(e.target.value);
+        });
+    }
+}
+
+// Initialize candidate source dropdown
+function initCandidateSource() {
+    const candidateSourceSelect = document.getElementById('candidateSourceSelect');
+    if (!candidateSourceSelect) return;
+
+    // Set the saved candidate source
+    candidateSourceSelect.value = candidateSource;
+
+    // Add event listener for changes
+    candidateSourceSelect.addEventListener('change', (e) => {
+        candidateSource = e.target.value;
+        localStorage.setItem('candidateSource', candidateSource);
+        
+        // Update planning table with new source
+        if (window.updatePlanningTable) {
+            window.updatePlanningTable();
+        }
+    });
 }
 
