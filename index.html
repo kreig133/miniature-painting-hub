@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Palette Picker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 Color Palette Picker</h1>
+            <p>Upload an image and click to extract colors</p>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="picker">Color Picker</button>
+            <button class="tab-btn" data-tab="products">Paint Colors</button>
+            <button class="tab-btn" data-tab="planning">Planning</button>
+        </div>
+
+        <!-- Color Picker Tab -->
+        <div class="tab-content active" id="pickerTab">
+            <div class="upload-section">
+                <label for="imageUpload" class="upload-label">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span>Choose Image</span>
+                </label>
+                <input type="file" id="imageUpload" accept="image/*" hidden>
+            </div>
+
+            <div class="image-section" id="imageSection" style="display: none;">
+                <div class="canvas-container">
+                    <canvas id="imageCanvas"></canvas>
+                    <div class="cursor-info" id="cursorInfo"></div>
+                </div>
+                <div class="instructions">
+                    <p>Click anywhere on the image to pick a color</p>
+                </div>
+            </div>
+
+            <div class="current-color" id="currentColorSection" style="display: none;">
+                <h3>Selected Color</h3>
+                <div class="color-preview" id="colorPreview"></div>
+                <div class="color-info">
+                    <div class="color-value">
+                        <label>HEX:</label>
+                        <input type="text" id="hexValue" readonly>
+                        <button class="copy-btn" data-copy="hex">Copy</button>
+                    </div>
+                    <div class="color-value">
+                        <label>RGB:</label>
+                        <input type="text" id="rgbValue" readonly>
+                        <button class="copy-btn" data-copy="rgb">Copy</button>
+                    </div>
+                </div>
+                <button class="save-btn" id="saveColorBtn">Save to Palette</button>
+            </div>
+
+            <div class="palette-section">
+                <div class="palette-header">
+                    <h2>Your Palette</h2>
+                    <button class="show-wheel-btn" id="showWheelBtn">Show Wheel</button>
+                </div>
+                <div class="palette-grid" id="paletteGrid">
+                    <p class="empty-message">No colors saved yet. Upload an image and start picking!</p>
+                </div>
+                <button class="clear-btn" id="clearPaletteBtn" style="display: none;">Clear Palette</button>
+            </div>
+        </div>
+
+        <!-- Paint Colors Tab -->
+        <div class="tab-content" id="productsTab">
+            <div class="products-section">
+                <h2>Paint Colors</h2>
+                <div class="table-container">
+                    <table id="productsTable">
+                        <thead>
+                            <tr>
+                                <th>Colour</th>
+                                <th>Paint</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Planning Tab -->
+        <div class="tab-content" id="planningTab">
+            <div class="planning-section">
+                <h2>Planning</h2>
+                <div class="table-container">
+                    <table id="planningTable">
+                        <thead>
+                            <tr>
+                                <th>Colour</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Color Wheel -->
+        <div class="floating-color-wheel" id="floatingColorWheel">
+            <div class="floating-wheel-header">
+                <span>Color Wheel</span>
+                <button class="close-wheel-btn" id="closeWheelBtn">×</button>
+            </div>
+            <div class="color-wheel-container">
+                <div class="color-wheel-wrapper">
+                    <canvas id="colorWheelCanvas"></canvas>
+                    <div class="magnifying-glass" id="magnifyingGlass">
+                        <canvas id="magnifyingGlassCanvas"></canvas>
+                    </div>
+                </div>
+                <div class="color-wheel-info">
+                    <div class="color-wheel-preview" id="colorWheelPreview"></div>
+                    <div class="color-wheel-values">
+                        <div id="colorWheelHex">#000000</div>
+                        <div id="colorWheelRGB">rgb(0, 0, 0)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="products_data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+
