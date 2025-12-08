@@ -15,9 +15,9 @@
 
         <!-- Tabs -->
         <div class="tabs">
-            <button class="tab-btn active" data-tab="picker">Color Picker</button>
-            <button class="tab-btn" data-tab="products">Paint Colors</button>
-            <button class="tab-btn" data-tab="vallejo">Vallejo Model</button>
+            <button class="tab-btn active" data-tab="picker">Palette Editor</button>
+            <button class="tab-btn" data-tab="paintcolors">Paint Colors</button>
+            <button class="tab-btn" data-tab="mycollection">My Collection</button>
             <button class="tab-btn" data-tab="planning">Planning</button>
         </div>
 
@@ -38,6 +38,9 @@
             <div class="image-section" id="imageSection" style="display: none;">
                 <div class="canvas-container">
                     <canvas id="imageCanvas"></canvas>
+                    <div class="magnifying-glass" id="imageMagnifyingGlass">
+                        <canvas id="imageMagnifyingGlassCanvas"></canvas>
+                    </div>
                     <div class="cursor-info" id="cursorInfo"></div>
                 </div>
                 <div class="instructions">
@@ -46,8 +49,34 @@
             </div>
 
             <div class="current-color" id="currentColorSection" style="display: none;">
-                <h3>Selected Color</h3>
-                <div class="color-preview" id="colorPreview"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Selected Color</h3>
+                    <button class="filter-toggle-btn" id="selectedColorFilterBtn">Filter</button>
+                </div>
+                <div class="filter-container" id="selectedColorFilters" style="display: none;">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                <div class="color-preview-wrapper">
+                    <div class="color-preview" id="colorPreview"></div>
+                    <div class="closest-matches" id="closestMatchesSection">
+                        <div class="match-item">
+                            <label>Palette 1</label>
+                            <div class="match-color-box" id="palette1Color"></div>
+                        </div>
+                        <div class="match-item">
+                            <label>Palette 2</label>
+                            <div class="match-color-box" id="palette2Color"></div>
+                        </div>
+                        <div class="match-item">
+                            <label>Collection 1</label>
+                            <div class="match-color-box" id="collection1Color"></div>
+                        </div>
+                        <div class="match-item">
+                            <label>Collection 2</label>
+                            <div class="match-color-box" id="collection2Color"></div>
+                        </div>
+                    </div>
+                </div>
                 <div class="color-info">
                     <div class="color-value">
                         <label>HEX:</label>
@@ -86,15 +115,21 @@
         </div>
 
         <!-- Paint Colors Tab -->
-        <div class="tab-content" id="productsTab">
+        <div class="tab-content" id="paintcolorsTab">
             <div class="products-section">
-                <h2>Paint Colors</h2>
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <h2 style="margin: 0;" id="paintColorsHeader">Paint Colors</h2>
+                </div>
+                <div class="filter-container" id="paintColorsFilters">
+                    <!-- Will be populated by JavaScript -->
+                </div>
                 <div class="table-container">
-                    <table id="productsTable">
+                    <table id="paintColorsTable">
                         <thead>
                             <tr>
                                 <th>Colour</th>
-                                <th>Paint</th>
+                                <th>Name</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -105,16 +140,27 @@
             </div>
         </div>
 
-        <!-- Vallejo Model Colors Tab -->
-        <div class="tab-content" id="vallejoTab">
-            <div class="vallejo-section">
-                <h2>Vallejo Model Colors</h2>
+        <!-- My Collection Tab -->
+        <div class="tab-content" id="mycollectionTab">
+            <div class="mycollection-section">
+                <div class="palette-header">
+                    <h2 id="myCollectionHeader">My Collection</h2>
+                    <div class="palette-controls">
+                        <button class="show-wheel-btn" id="addColorBtn">Add Color</button>
+                        <button class="show-wheel-btn" id="showCollectionWheelBtn">Show Wheel</button>
+                    </div>
+                </div>
+                <div class="filter-container" id="myCollectionFilters">
+                    <!-- Will be populated by JavaScript -->
+                </div>
                 <div class="table-container">
-                    <table id="vallejoTable">
+                    <table id="myCollectionTable">
                         <thead>
                             <tr>
                                 <th>Colour</th>
                                 <th>Name</th>
+                                <th>Producer</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -128,7 +174,16 @@
         <!-- Planning Tab -->
         <div class="tab-content" id="planningTab">
             <div class="planning-section">
-                <h2>Planning</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;" id="planningHeader">Planning</h2>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label for="saturationThreshold" style="font-weight: 500; color: #667eea;">Saturation Threshold (%):</label>
+                        <input type="number" id="saturationThreshold" min="0" max="100" value="90" style="width: 80px; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95rem; outline: none;" />
+                    </div>
+                </div>
+                <div class="filter-container" id="planningFilters">
+                    <!-- Will be populated by JavaScript -->
+                </div>
                 <div class="table-container">
                     <table id="planningTable">
                         <thead>
@@ -146,21 +201,65 @@
                                         </select>
                                     </div>
                                 </th>
-                                <th>
-                                    <div class="table-header-with-controls">
-                                        <span>Candidate</span>
-                                        <select id="candidateSourceSelect" class="sort-order-select">
-                                            <option value="products">PRODUCTS_DATA</option>
-                                            <option value="vallejo">Vallejo Model</option>
-                                        </select>
-                                    </div>
-                                </th>
+                                <th>Candidate</th>
+                                <th>Second Candidate</th>
+                                <th>Closest from My Collection</th>
                             </tr>
                         </thead>
                         <tbody>
                             <!-- Will be populated by JavaScript -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Source Selection Modal -->
+        <div class="source-modal" id="sourceModal">
+            <div class="source-modal-content">
+                <div class="source-modal-header">
+                    <h3>Select Source</h3>
+                    <button class="source-modal-close" id="sourceModalClose">×</button>
+                </div>
+                <div class="source-modal-body">
+                    <div class="source-option" data-source="merged">Merged (All Sources)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Color Modal -->
+        <div class="source-modal" id="addColorModal">
+            <div class="source-modal-content">
+                <div class="source-modal-header">
+                    <h3>Add Color to My Collection</h3>
+                    <button class="source-modal-close" id="addColorModalClose">×</button>
+                </div>
+                <div class="source-modal-body">
+                    <form id="addColorForm">
+                        <div class="form-group">
+                            <label for="colorName">Name:</label>
+                            <input type="text" id="colorName" name="name" required placeholder="Enter color name">
+                        </div>
+                        <div class="form-group">
+                            <label for="colorHex">Hex Color:</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="color" id="colorHexPicker" style="width: 60px; height: 40px; border: 2px solid #e0e0e0; border-radius: 5px; cursor: pointer;">
+                                <input type="text" id="colorHex" name="hex" required placeholder="#FF0000" style="flex: 1;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="colorType">Type (comma-separated):</label>
+                            <input type="text" id="colorType" name="type" placeholder="e.g., Base, Metallic">
+                        </div>
+                        <div class="form-group">
+                            <label for="colorProducer">Producer:</label>
+                            <input type="text" id="colorProducer" name="producer" placeholder="Enter producer name">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="cancel-btn" id="cancelAddColorBtn">Cancel</button>
+                            <button type="submit" class="save-color-btn">Save</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -178,12 +277,57 @@
                         <canvas id="magnifyingGlassCanvas"></canvas>
                     </div>
                 </div>
+                <div class="wheel-controls">
+                    <div class="slider-control">
+                        <label for="paletteValueSlider">Value:</label>
+                        <input type="range" id="paletteValueSlider" min="0" max="100" value="50" class="value-slider">
+                        <span id="paletteValueDisplay">50</span>
+                    </div>
+                    <div class="slider-control">
+                        <label for="paletteRangeSlider">Range:</label>
+                        <input type="range" id="paletteRangeSlider" min="0" max="100" value="100" class="range-slider">
+                        <span id="paletteRangeDisplay">100</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Collection Color Wheel -->
+        <div class="floating-color-wheel" id="floatingCollectionWheel">
+            <div class="floating-wheel-header">
+                <span>Collection Color Wheel</span>
+                <button class="close-wheel-btn" id="closeCollectionWheelBtn">×</button>
+            </div>
+            <div class="color-wheel-container">
+                <div class="color-wheel-wrapper">
+                    <canvas id="collectionWheelCanvas"></canvas>
+                    <div class="magnifying-glass" id="collectionMagnifyingGlass">
+                        <canvas id="collectionMagnifyingGlassCanvas"></canvas>
+                    </div>
+                </div>
+                <div class="wheel-controls">
+                    <div class="slider-control">
+                        <label for="collectionValueSlider">Value:</label>
+                        <input type="range" id="collectionValueSlider" min="0" max="100" value="50" class="value-slider">
+                        <span id="collectionValueDisplay">50</span>
+                    </div>
+                    <div class="slider-control">
+                        <label for="collectionRangeSlider">Range:</label>
+                        <input type="range" id="collectionRangeSlider" min="0" max="100" value="100" class="range-slider">
+                        <span id="collectionRangeDisplay">100</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="products_data.js"></script>
-    <script src="vallejo_model_colours_data.js"></script>
+    <script src="data/vallejo_model_colours_data.js"></script>
+    <script src="data/vallejo_model_air_colours_data.js"></script>
+    <script src="data/vallejo_game_color_data.js"></script>
+    <script src="data/army_painter_speedpaint_2.0_data.js"></script>
+    <script src="data/army_painter_warpaints_fanatic_data.js"></script>
+    <script src="data/ak_interactive_3gen_data.js"></script>
+    <script src="data/ak_interactive_quick_gen_data.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
