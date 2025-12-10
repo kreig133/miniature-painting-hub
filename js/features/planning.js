@@ -5,7 +5,7 @@
 import { rgbToHSV, hsvDistance, addGradientClickToColorBox, hexToRgb } from '../utils/colorUtils.js';
 import { addHoverTooltipToColorBox } from '../utils/domUtils.js';
 import { state, getPalette, getMyCollection, getMergedPaintColors } from '../core/state.js';
-import { updateHeaderCount } from './myCollection.js';
+import { updateHeaderCount, getEffectiveMyCollection } from './myCollection.js';
 import { filterData } from './filters.js';
 
 // Dependencies
@@ -39,7 +39,9 @@ export function findClosestColor(targetColor, source = 'merged', filterContainer
     // Convert target color to HSV
     const targetHSV = rgbToHSV(targetColor.r, targetColor.g, targetColor.b);
     const targetSaturation = targetHSV.s;
-    const thresholdValue = targetSaturation * (state.saturationThreshold / 100);
+    // Use selectedColorSaturationThreshold if called from Palette Editor, otherwise use saturationThreshold
+    const threshold = (filterContainerId === 'selectedColorFilters') ? state.selectedColorSaturationThreshold : state.saturationThreshold;
+    const thresholdValue = targetSaturation * (threshold / 100);
 
     let closestMatch = null;
     let minDistance = Infinity;
@@ -110,7 +112,9 @@ export function findNthClosestColor(targetColor, n, source = 'merged', filterCon
 
     const targetHSV = rgbToHSV(targetColor.r, targetColor.g, targetColor.b);
     const targetSaturation = targetHSV.s;
-    const thresholdValue = targetSaturation * (state.saturationThreshold / 100);
+    // Use selectedColorSaturationThreshold if called from Palette Editor, otherwise use saturationThreshold
+    const threshold = (filterContainerId === 'selectedColorFilters') ? state.selectedColorSaturationThreshold : state.saturationThreshold;
+    const thresholdValue = targetSaturation * (threshold / 100);
 
     const matches = [];
     
@@ -148,9 +152,14 @@ export function findNthClosestColor(targetColor, n, source = 'merged', filterCon
     return matches.length >= n ? matches[n - 1].item : null;
 }
 
+// Find closest from Paint Colours (wrapper for findClosestColor)
+export function findClosestFromPaintColors(targetColor, filterContainerId = null) {
+    return findClosestColor(targetColor, 'merged', filterContainerId);
+}
+
 // Find closest from my collection
 export function findClosestFromMyCollection(targetColor, filterContainerId = null) {
-    const myCollection = getMyCollection();
+    const myCollection = getEffectiveMyCollection();
     if (!myCollection || myCollection.length === 0) {
         return null;
     }
@@ -165,7 +174,9 @@ export function findClosestFromMyCollection(targetColor, filterContainerId = nul
 
     const targetHSV = rgbToHSV(targetColor.r, targetColor.g, targetColor.b);
     const targetSaturation = targetHSV.s;
-    const thresholdValue = targetSaturation * (state.saturationThreshold / 100);
+    // Use selectedColorSaturationThreshold if called from Palette Editor, otherwise use saturationThreshold
+    const threshold = (filterContainerId === 'selectedColorFilters') ? state.selectedColorSaturationThreshold : state.saturationThreshold;
+    const thresholdValue = targetSaturation * (threshold / 100);
 
     let closestMatch = null;
     let minDistance = Infinity;
@@ -212,7 +223,7 @@ export function findClosestFromMyCollection(targetColor, filterContainerId = nul
 
 // Find Nth closest from my collection
 export function findNthClosestFromMyCollection(targetColor, n, filterContainerId = null) {
-    const myCollection = getMyCollection();
+    const myCollection = getEffectiveMyCollection();
     if (!myCollection || myCollection.length === 0) {
         return null;
     }
@@ -227,7 +238,9 @@ export function findNthClosestFromMyCollection(targetColor, n, filterContainerId
 
     const targetHSV = rgbToHSV(targetColor.r, targetColor.g, targetColor.b);
     const targetSaturation = targetHSV.s;
-    const thresholdValue = targetSaturation * (state.saturationThreshold / 100);
+    // Use selectedColorSaturationThreshold if called from Palette Editor, otherwise use saturationThreshold
+    const threshold = (filterContainerId === 'selectedColorFilters') ? state.selectedColorSaturationThreshold : state.saturationThreshold;
+    const thresholdValue = targetSaturation * (threshold / 100);
 
     const matches = [];
     
@@ -263,7 +276,8 @@ export function findNthClosestFromMyCollection(targetColor, n, filterContainerId
 }
 
 // Find closest from palette
-export function findClosestFromPalette(targetColor) {
+// useSelectedColorThreshold: true for Palette Editor, false for Planning tab
+export function findClosestFromPalette(targetColor, useSelectedColorThreshold = false) {
     const palette = getPalette();
     if (!palette || palette.length === 0) {
         return null;
@@ -271,7 +285,9 @@ export function findClosestFromPalette(targetColor) {
 
     const targetHSV = rgbToHSV(targetColor.r, targetColor.g, targetColor.b);
     const targetSaturation = targetHSV.s;
-    const thresholdValue = targetSaturation * (state.saturationThreshold / 100);
+    // Use selectedColorSaturationThreshold if called from Palette Editor, otherwise use saturationThreshold
+    const threshold = useSelectedColorThreshold ? state.selectedColorSaturationThreshold : state.saturationThreshold;
+    const thresholdValue = targetSaturation * (threshold / 100);
 
     let closestMatch = null;
     let minDistance = Infinity;
@@ -335,7 +351,8 @@ export function findClosestFromPalette(targetColor) {
 }
 
 // Find Nth closest from palette
-export function findNthClosestFromPalette(targetColor, n) {
+// useSelectedColorThreshold: true for Palette Editor, false for Planning tab
+export function findNthClosestFromPalette(targetColor, n, useSelectedColorThreshold = false) {
     const palette = getPalette();
     if (!palette || palette.length === 0) {
         return null;
@@ -343,7 +360,9 @@ export function findNthClosestFromPalette(targetColor, n) {
 
     const targetHSV = rgbToHSV(targetColor.r, targetColor.g, targetColor.b);
     const targetSaturation = targetHSV.s;
-    const thresholdValue = targetSaturation * (state.saturationThreshold / 100);
+    // Use selectedColorSaturationThreshold if called from Palette Editor, otherwise use saturationThreshold
+    const threshold = useSelectedColorThreshold ? state.selectedColorSaturationThreshold : state.saturationThreshold;
+    const thresholdValue = targetSaturation * (threshold / 100);
 
     const matches = [];
     
@@ -433,131 +452,131 @@ export function loadPlanningTable() {
             colorCell.appendChild(colorBox);
             row.appendChild(colorCell);
             
-            // Candidate column
-            const candidateCell = document.createElement('td');
-            const closestMatch = findClosestColor(color, 'merged', 'planningFilters');
+            // Candidate 1 column (from My Collection)
+            const candidate1Cell = document.createElement('td');
+            const candidate1Match = findClosestFromMyCollection(color, 'planningFilters');
             
-            if (closestMatch) {
-                const candidateColorBox = document.createElement('div');
-                candidateColorBox.className = 'color-box';
-                candidateColorBox.style.backgroundColor = closestMatch.hex;
-                addGradientClickToColorBox(candidateColorBox, closestMatch.hex);
+            if (candidate1Match) {
+                const candidate1ColorBox = document.createElement('div');
+                candidate1ColorBox.className = 'color-box';
+                candidate1ColorBox.style.backgroundColor = candidate1Match.hex;
+                addGradientClickToColorBox(candidate1ColorBox, candidate1Match.hex);
                 
-                candidateColorBox.dataset.colorName = closestMatch.name || '';
-                candidateColorBox.dataset.colorType = Array.isArray(closestMatch.type) ? closestMatch.type.join(', ') : (closestMatch.type || '');
-                candidateColorBox.dataset.colorProducer = closestMatch.producer || '';
-                addHoverTooltipToColorBox(candidateColorBox);
+                candidate1ColorBox.dataset.colorName = candidate1Match.name || '';
+                candidate1ColorBox.dataset.colorType = Array.isArray(candidate1Match.type) ? candidate1Match.type.join(', ') : (candidate1Match.type || '');
+                candidate1ColorBox.dataset.colorProducer = candidate1Match.producer || '';
+                addHoverTooltipToColorBox(candidate1ColorBox);
                 
-                const candidateName = document.createElement('span');
-                candidateName.className = 'candidate-name';
-                candidateName.textContent = closestMatch.name || '';
+                const candidate1Name = document.createElement('span');
+                candidate1Name.className = 'candidate-name';
+                candidate1Name.textContent = candidate1Match.name || '';
                 
-                const candidateContainer = document.createElement('div');
-                candidateContainer.className = 'candidate-container';
-                candidateContainer.appendChild(candidateColorBox);
+                const candidate1Container = document.createElement('div');
+                candidate1Container.className = 'candidate-container';
+                candidate1Container.appendChild(candidate1ColorBox);
                 
-                const candidateNameWrapper = document.createElement('div');
-                candidateNameWrapper.className = 'candidate-name-wrapper';
-                candidateNameWrapper.appendChild(candidateName);
+                const candidate1NameWrapper = document.createElement('div');
+                candidate1NameWrapper.className = 'candidate-name-wrapper';
+                candidate1NameWrapper.appendChild(candidate1Name);
                 
-                if (closestMatch.type && Array.isArray(closestMatch.type) && closestMatch.type.length > 0) {
+                if (candidate1Match.type && Array.isArray(candidate1Match.type) && candidate1Match.type.length > 0) {
                     const typeSpan = document.createElement('span');
                     typeSpan.className = 'paint-type';
-                    typeSpan.textContent = closestMatch.type.join(', ');
-                    candidateNameWrapper.appendChild(typeSpan);
+                    typeSpan.textContent = candidate1Match.type.join(', ');
+                    candidate1NameWrapper.appendChild(typeSpan);
                 }
                 
-                candidateContainer.appendChild(candidateNameWrapper);
-                candidateCell.appendChild(candidateContainer);
+                candidate1Container.appendChild(candidate1NameWrapper);
+                candidate1Cell.appendChild(candidate1Container);
             } else {
-                candidateCell.textContent = 'No match found';
+                candidate1Cell.textContent = 'No match found';
             }
             
-            row.appendChild(candidateCell);
+            row.appendChild(candidate1Cell);
             
-            // Second Candidate column
-            const secondCandidateCell = document.createElement('td');
-            const secondClosestMatch = findNthClosestColor(color, 2, 'merged', 'planningFilters');
+            // Candidate 2 column (from My Collection)
+            const candidate2Cell = document.createElement('td');
+            const candidate2Match = findNthClosestFromMyCollection(color, 2, 'planningFilters');
             
-            if (secondClosestMatch) {
-                const secondCandidateColorBox = document.createElement('div');
-                secondCandidateColorBox.className = 'color-box';
-                secondCandidateColorBox.style.backgroundColor = secondClosestMatch.hex;
-                addGradientClickToColorBox(secondCandidateColorBox, secondClosestMatch.hex);
+            if (candidate2Match) {
+                const candidate2ColorBox = document.createElement('div');
+                candidate2ColorBox.className = 'color-box';
+                candidate2ColorBox.style.backgroundColor = candidate2Match.hex;
+                addGradientClickToColorBox(candidate2ColorBox, candidate2Match.hex);
                 
-                secondCandidateColorBox.dataset.colorName = secondClosestMatch.name || '';
-                secondCandidateColorBox.dataset.colorType = Array.isArray(secondClosestMatch.type) ? secondClosestMatch.type.join(', ') : (secondClosestMatch.type || '');
-                secondCandidateColorBox.dataset.colorProducer = secondClosestMatch.producer || '';
-                addHoverTooltipToColorBox(secondCandidateColorBox);
+                candidate2ColorBox.dataset.colorName = candidate2Match.name || '';
+                candidate2ColorBox.dataset.colorType = Array.isArray(candidate2Match.type) ? candidate2Match.type.join(', ') : (candidate2Match.type || '');
+                candidate2ColorBox.dataset.colorProducer = candidate2Match.producer || '';
+                addHoverTooltipToColorBox(candidate2ColorBox);
                 
-                const secondCandidateName = document.createElement('span');
-                secondCandidateName.className = 'candidate-name';
-                secondCandidateName.textContent = secondClosestMatch.name || '';
+                const candidate2Name = document.createElement('span');
+                candidate2Name.className = 'candidate-name';
+                candidate2Name.textContent = candidate2Match.name || '';
                 
-                const secondCandidateContainer = document.createElement('div');
-                secondCandidateContainer.className = 'candidate-container';
-                secondCandidateContainer.appendChild(secondCandidateColorBox);
+                const candidate2Container = document.createElement('div');
+                candidate2Container.className = 'candidate-container';
+                candidate2Container.appendChild(candidate2ColorBox);
                 
-                const secondCandidateNameWrapper = document.createElement('div');
-                secondCandidateNameWrapper.className = 'candidate-name-wrapper';
-                secondCandidateNameWrapper.appendChild(secondCandidateName);
+                const candidate2NameWrapper = document.createElement('div');
+                candidate2NameWrapper.className = 'candidate-name-wrapper';
+                candidate2NameWrapper.appendChild(candidate2Name);
                 
-                if (secondClosestMatch.type && Array.isArray(secondClosestMatch.type) && secondClosestMatch.type.length > 0) {
+                if (candidate2Match.type && Array.isArray(candidate2Match.type) && candidate2Match.type.length > 0) {
                     const typeSpan = document.createElement('span');
                     typeSpan.className = 'paint-type';
-                    typeSpan.textContent = secondClosestMatch.type.join(', ');
-                    secondCandidateNameWrapper.appendChild(typeSpan);
+                    typeSpan.textContent = candidate2Match.type.join(', ');
+                    candidate2NameWrapper.appendChild(typeSpan);
                 }
                 
-                secondCandidateContainer.appendChild(secondCandidateNameWrapper);
-                secondCandidateCell.appendChild(secondCandidateContainer);
+                candidate2Container.appendChild(candidate2NameWrapper);
+                candidate2Cell.appendChild(candidate2Container);
             } else {
-                secondCandidateCell.textContent = 'No match found';
+                candidate2Cell.textContent = 'No match found';
             }
             
-            row.appendChild(secondCandidateCell);
+            row.appendChild(candidate2Cell);
             
-            // Closest from My Collection column
-            const myCollectionCandidateCell = document.createElement('td');
-            const myCollectionMatch = findClosestFromMyCollection(color, 'planningFilters');
+            // From All column (from Paint Colours)
+            const fromAllCell = document.createElement('td');
+            const fromAllMatch = findClosestFromPaintColors(color, 'planningFilters');
             
-            if (myCollectionMatch) {
-                const myCollectionColorBox = document.createElement('div');
-                myCollectionColorBox.className = 'color-box';
-                myCollectionColorBox.style.backgroundColor = myCollectionMatch.hex;
-                addGradientClickToColorBox(myCollectionColorBox, myCollectionMatch.hex);
+            if (fromAllMatch) {
+                const fromAllColorBox = document.createElement('div');
+                fromAllColorBox.className = 'color-box';
+                fromAllColorBox.style.backgroundColor = fromAllMatch.hex;
+                addGradientClickToColorBox(fromAllColorBox, fromAllMatch.hex);
                 
-                myCollectionColorBox.dataset.colorName = myCollectionMatch.name || '';
-                myCollectionColorBox.dataset.colorType = Array.isArray(myCollectionMatch.type) ? myCollectionMatch.type.join(', ') : (myCollectionMatch.type || '');
-                myCollectionColorBox.dataset.colorProducer = myCollectionMatch.producer || '';
-                addHoverTooltipToColorBox(myCollectionColorBox);
+                fromAllColorBox.dataset.colorName = fromAllMatch.name || '';
+                fromAllColorBox.dataset.colorType = Array.isArray(fromAllMatch.type) ? fromAllMatch.type.join(', ') : (fromAllMatch.type || '');
+                fromAllColorBox.dataset.colorProducer = fromAllMatch.producer || '';
+                addHoverTooltipToColorBox(fromAllColorBox);
                 
-                const myCollectionName = document.createElement('span');
-                myCollectionName.className = 'candidate-name';
-                myCollectionName.textContent = myCollectionMatch.name || 'Unnamed';
+                const fromAllName = document.createElement('span');
+                fromAllName.className = 'candidate-name';
+                fromAllName.textContent = fromAllMatch.name || '';
                 
-                const myCollectionContainer = document.createElement('div');
-                myCollectionContainer.className = 'candidate-container';
-                myCollectionContainer.appendChild(myCollectionColorBox);
+                const fromAllContainer = document.createElement('div');
+                fromAllContainer.className = 'candidate-container';
+                fromAllContainer.appendChild(fromAllColorBox);
                 
-                const myCollectionNameWrapper = document.createElement('div');
-                myCollectionNameWrapper.className = 'candidate-name-wrapper';
-                myCollectionNameWrapper.appendChild(myCollectionName);
+                const fromAllNameWrapper = document.createElement('div');
+                fromAllNameWrapper.className = 'candidate-name-wrapper';
+                fromAllNameWrapper.appendChild(fromAllName);
                 
-                if (myCollectionMatch.type && Array.isArray(myCollectionMatch.type) && myCollectionMatch.type.length > 0) {
+                if (fromAllMatch.type && Array.isArray(fromAllMatch.type) && fromAllMatch.type.length > 0) {
                     const typeSpan = document.createElement('span');
                     typeSpan.className = 'paint-type';
-                    typeSpan.textContent = myCollectionMatch.type.join(', ');
-                    myCollectionNameWrapper.appendChild(typeSpan);
+                    typeSpan.textContent = fromAllMatch.type.join(', ');
+                    fromAllNameWrapper.appendChild(typeSpan);
                 }
                 
-                myCollectionContainer.appendChild(myCollectionNameWrapper);
-                myCollectionCandidateCell.appendChild(myCollectionContainer);
+                fromAllContainer.appendChild(fromAllNameWrapper);
+                fromAllCell.appendChild(fromAllContainer);
             } else {
-                myCollectionCandidateCell.textContent = 'No match found';
+                fromAllCell.textContent = 'No match found';
             }
             
-            row.appendChild(myCollectionCandidateCell);
+            row.appendChild(fromAllCell);
             tbody.appendChild(row);
         });
     }

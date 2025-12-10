@@ -3,6 +3,8 @@
  */
 
 import { getUniqueProducersAndTypes } from './paintColors.js';
+import { state, setSelectedColorSaturationThreshold } from '../core/state.js';
+import { saveSelectedColorSaturationThreshold, loadSelectedColorSaturationThreshold } from '../utils/storage.js';
 
 // Callbacks for dependencies
 let loadPaintColors = null;
@@ -10,6 +12,7 @@ let loadMyCollection = null;
 let updatePlanningTable = null;
 let updateClosestMatches = null;
 let drawCollectionPointsOnWheel = null;
+let drawPaintColorsPointsOnWheel = null;
 let getCurrentColor = null;
 
 // Create filter checkboxes
@@ -151,6 +154,45 @@ export function createFilterCheckboxes(containerId) {
     typeGroup.appendChild(typeCheckboxes);
     container.appendChild(typeGroup);
     
+    // Add saturation threshold for Palette Editor (selectedColorFilters)
+    if (containerId === 'selectedColorFilters') {
+        const thresholdGroup = document.createElement('div');
+        thresholdGroup.className = 'filter-group';
+        thresholdGroup.style.marginTop = '20px';
+        thresholdGroup.style.paddingTop = '20px';
+        thresholdGroup.style.borderTop = '1px solid #e0e0e0';
+        
+        const thresholdLabel = document.createElement('label');
+        thresholdLabel.style.fontWeight = '500';
+        thresholdLabel.style.color = '#667eea';
+        thresholdLabel.style.display = 'flex';
+        thresholdLabel.style.alignItems = 'center';
+        thresholdLabel.style.gap = '10px';
+        thresholdLabel.textContent = 'Saturation Threshold (%):';
+        
+        const thresholdInput = document.createElement('input');
+        thresholdInput.type = 'number';
+        thresholdInput.id = 'selectedColorSaturationThreshold';
+        thresholdInput.min = '0';
+        thresholdInput.max = '100';
+        thresholdInput.value = '90';
+        thresholdInput.style.width = '80px';
+        thresholdInput.style.padding = '8px 12px';
+        thresholdInput.style.border = '2px solid #e0e0e0';
+        thresholdInput.style.borderRadius = '8px';
+        thresholdInput.style.fontSize = '0.95rem';
+        thresholdInput.style.outline = 'none';
+        
+        thresholdLabel.appendChild(thresholdInput);
+        thresholdGroup.appendChild(thresholdLabel);
+        container.appendChild(thresholdGroup);
+        
+        // Initialize the threshold input after it's created
+        setTimeout(() => {
+            initSelectedColorSaturationThreshold();
+        }, 0);
+    }
+    
     // Add event listeners to all checkboxes
     const allCheckboxes = container.querySelectorAll('input[type="checkbox"]');
     allCheckboxes.forEach(checkbox => {
@@ -160,10 +202,22 @@ export function createFilterCheckboxes(containerId) {
     });
 }
 
+// Import mixing functions
+let loadMixingTable = null;
+
+// Set mixing callback
+export function setMixingCallback(callback) {
+    loadMixingTable = callback;
+}
+
 // Trigger reload based on container ID
 function triggerReload(containerId) {
     if (containerId === 'paintColorsFilters') {
         if (loadPaintColors) loadPaintColors();
+        // Update paint colors wheel when filters change
+        if (drawPaintColorsPointsOnWheel) {
+            drawPaintColorsPointsOnWheel();
+        }
     } else if (containerId === 'myCollectionFilters') {
         if (loadMyCollection) loadMyCollection();
         // Update collection wheel when filters change
@@ -179,6 +233,10 @@ function triggerReload(containerId) {
         const currentColor = getCurrentColor ? getCurrentColor() : null;
         if (currentColor && updateClosestMatches) {
             updateClosestMatches();
+        }
+    } else if (containerId === 'mixingFilters') {
+        if (loadMixingTable) {
+            loadMixingTable('mixingFilters');
         }
     }
 }
@@ -251,8 +309,37 @@ export function initFilters(dependencies = {}) {
     if (dependencies.drawCollectionPointsOnWheel) {
         drawCollectionPointsOnWheel = dependencies.drawCollectionPointsOnWheel;
     }
+    if (dependencies.drawPaintColorsPointsOnWheel !== undefined) {
+        drawPaintColorsPointsOnWheel = dependencies.drawPaintColorsPointsOnWheel;
+    }
     if (dependencies.getCurrentColor) {
         getCurrentColor = dependencies.getCurrentColor;
+    }
+}
+
+// Initialize saturation threshold for Palette Editor
+function initSelectedColorSaturationThreshold() {
+    const saturationThresholdInput = document.getElementById('selectedColorSaturationThreshold');
+    if (saturationThresholdInput && !saturationThresholdInput.dataset.initialized) {
+        // Mark as initialized to avoid duplicate event listeners
+        saturationThresholdInput.dataset.initialized = 'true';
+        
+        // Load saved value
+        const savedThreshold = loadSelectedColorSaturationThreshold();
+        saturationThresholdInput.value = savedThreshold;
+        state.selectedColorSaturationThreshold = savedThreshold;
+        
+        saturationThresholdInput.addEventListener('input', (e) => {
+            const threshold = parseFloat(e.target.value);
+            if (!isNaN(threshold)) {
+                state.selectedColorSaturationThreshold = threshold;
+                saveSelectedColorSaturationThreshold(threshold);
+                // Update closest matches when threshold changes
+                if (updateClosestMatches) {
+                    updateClosestMatches();
+                }
+            }
+        });
     }
 }
 

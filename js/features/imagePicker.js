@@ -34,6 +34,7 @@ let findClosestFromPalette = null;
 let findNthClosestFromPalette = null;
 let findClosestFromMyCollection = null;
 let findNthClosestFromMyCollection = null;
+let findClosestFromPaintColors = null;
 let addHoverTooltipToColorBox = null;
 let addColorToPalette = null;
 
@@ -81,6 +82,9 @@ export function initImagePicker(dependencies = {}) {
     }
     if (dependencies.findNthClosestFromMyCollection) {
         findNthClosestFromMyCollection = dependencies.findNthClosestFromMyCollection;
+    }
+    if (dependencies.findClosestFromPaintColors) {
+        findClosestFromPaintColors = dependencies.findClosestFromPaintColors;
     }
     if (dependencies.addHoverTooltipToColorBox) {
         addHoverTooltipToColorBox = dependencies.addHoverTooltipToColorBox;
@@ -282,8 +286,9 @@ export function updateClosestMatchesDisplay() {
     if (!currentColor) return;
     
     // Find closest from palette (no filters - always from user's palette)
-    const palette1 = findClosestFromPalette ? findClosestFromPalette(currentColor) : null;
-    const palette2 = findNthClosestFromPalette ? findNthClosestFromPalette(currentColor, 2) : null;
+    // Use selectedColorSaturationThreshold for Palette Editor context
+    const palette1 = findClosestFromPalette ? findClosestFromPalette(currentColor, true) : null;
+    const palette2 = findNthClosestFromPalette ? findNthClosestFromPalette(currentColor, 2, true) : null;
     
     // Find closest from my collection (apply filters)
     const collection1 = findClosestFromMyCollection ? findClosestFromMyCollection(currentColor, 'selectedColorFilters') : null;
@@ -313,68 +318,56 @@ export function updateClosestMatchesDisplay() {
         }
     }
     
-    // Update Collection 1
-    const collection1Color = document.getElementById('collection1Color');
-    if (collection1Color) {
-        if (collection1) {
-            collection1Color.style.backgroundColor = collection1.hex;
-            collection1Color.style.display = 'block';
-            addGradientClickToColorBox(collection1Color, collection1.hex);
-            // Store color data for tooltip
-            collection1Color.dataset.colorName = collection1.name || '';
-            collection1Color.dataset.colorType = Array.isArray(collection1.type) ? collection1.type.join(', ') : (collection1.type || '');
-            collection1Color.dataset.colorProducer = collection1.producer || '';
-            // Add hover tooltip
-            if (addHoverTooltipToColorBox) {
-                addHoverTooltipToColorBox(collection1Color);
+    // Helper function to remove old tooltip
+    function removeTooltip(colorBox) {
+        if (colorBox._tooltipElement && colorBox._tooltipElement.parentNode) {
+            colorBox._tooltipElement.remove();
+        }
+        delete colorBox._tooltipElement;
+        delete colorBox.dataset.tooltipAttached;
+        delete colorBox.dataset.colorName;
+        delete colorBox.dataset.colorType;
+        delete colorBox.dataset.colorProducer;
+    }
+    
+    // Helper function to update a match color box
+    function updateMatchColorBox(elementId, match, hasTooltip = false) {
+        const colorBox = document.getElementById(elementId);
+        if (!colorBox) return;
+        
+        if (match) {
+            colorBox.style.backgroundColor = match.hex;
+            colorBox.style.display = 'block';
+            addGradientClickToColorBox(colorBox, match.hex);
+            
+            if (hasTooltip && (match.name || match.producer || match.type)) {
+                // Update tooltip data
+                colorBox.dataset.colorName = match.name || '';
+                colorBox.dataset.colorType = Array.isArray(match.type) ? match.type.join(', ') : (match.type || '');
+                colorBox.dataset.colorProducer = match.producer || '';
+                
+                // Add/update hover tooltip (will update content if already exists)
+                if (addHoverTooltipToColorBox) {
+                    addHoverTooltipToColorBox(colorBox);
+                }
             } else {
-                addHoverTooltip(collection1Color);
+                // Remove tooltip if not needed
+                removeTooltip(colorBox);
             }
         } else {
-            collection1Color.style.display = 'none';
-            // Remove tooltip data
-            delete collection1Color.dataset.colorName;
-            delete collection1Color.dataset.colorType;
-            delete collection1Color.dataset.colorProducer;
-            delete collection1Color.dataset.tooltipAttached;
-            // Remove tooltip element
-            const tooltip = collection1Color.querySelector('.color-tooltip');
-            if (tooltip) {
-                tooltip.remove();
-            }
+            colorBox.style.display = 'none';
+            removeTooltip(colorBox);
         }
     }
     
+    // Update Collection 1
+    updateMatchColorBox('collection1Color', collection1, true);
+    
     // Update Collection 2
-    const collection2Color = document.getElementById('collection2Color');
-    if (collection2Color) {
-        if (collection2) {
-            collection2Color.style.backgroundColor = collection2.hex;
-            collection2Color.style.display = 'block';
-            addGradientClickToColorBox(collection2Color, collection2.hex);
-            // Store color data for tooltip
-            collection2Color.dataset.colorName = collection2.name || '';
-            collection2Color.dataset.colorType = Array.isArray(collection2.type) ? collection2.type.join(', ') : (collection2.type || '');
-            collection2Color.dataset.colorProducer = collection2.producer || '';
-            // Add hover tooltip
-            if (addHoverTooltipToColorBox) {
-                addHoverTooltipToColorBox(collection2Color);
-            } else {
-                addHoverTooltip(collection2Color);
-            }
-        } else {
-            collection2Color.style.display = 'none';
-            // Remove tooltip data
-            delete collection2Color.dataset.colorName;
-            delete collection2Color.dataset.colorType;
-            delete collection2Color.dataset.colorProducer;
-            delete collection2Color.dataset.tooltipAttached;
-            // Remove tooltip element
-            const tooltip = collection2Color.querySelector('.color-tooltip');
-            if (tooltip) {
-                tooltip.remove();
-            }
-        }
-    }
+    updateMatchColorBox('collection2Color', collection2, true);
+    
+    // Update "From All" (closest from Paint Colours)
+    const fromAll = findClosestFromPaintColors ? findClosestFromPaintColors(currentColor, 'selectedColorFilters') : null;
+    updateMatchColorBox('fromAllColor', fromAll, true);
 }
 

@@ -3,8 +3,8 @@
  */
 
 import { rgbToHSV, generateSplitGradient } from '../utils/colorUtils.js';
-import { savePalette as savePaletteToStorage } from '../utils/storage.js';
-import { state, setPalette, getPalette } from '../core/state.js';
+import { savePalette as savePaletteToStorage, savePalettes, saveCurrentPaletteId } from '../utils/storage.js';
+import { state, setPalette, getPalette, getCurrentPaletteId } from '../core/state.js';
 
 let paletteGrid = null;
 let clearPaletteBtn = null;
@@ -168,7 +168,27 @@ function createPaletteItem(color, index) {
 
 // Save palette to localStorage
 export function savePalette() {
-    savePaletteToStorage(getPalette());
+    const palette = getPalette();
+    const currentPaletteId = getCurrentPaletteId();
+    
+    // Update the current palette in state
+    if (currentPaletteId && state.palettes[currentPaletteId]) {
+        state.palettes[currentPaletteId].colors = palette;
+        savePalettes(state.palettes);
+    }
+    
+    // Also save to old format for backward compatibility
+    savePaletteToStorage(palette);
+}
+
+// Update palette name in header
+export function updatePaletteName() {
+    const currentPaletteId = getCurrentPaletteId();
+    const paletteNameElement = document.getElementById('currentPaletteName');
+    
+    if (paletteNameElement && currentPaletteId && state.palettes[currentPaletteId]) {
+        paletteNameElement.textContent = state.palettes[currentPaletteId].name;
+    }
 }
 
 // Sort palette using HSV color space (Hue, Saturation, Value)

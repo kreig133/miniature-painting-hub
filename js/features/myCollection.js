@@ -2,14 +2,45 @@
  * My Collection feature - manages user's color collection
  */
 
-import { saveMyCollection as saveMyCollectionToStorage, loadMyCollection as loadMyCollectionFromStorage } from '../utils/storage.js';
+import { saveMyCollection as saveMyCollectionToStorage, loadMyCollection as loadMyCollectionFromStorage, 
+         saveUseShoppingColors, loadUseShoppingColors } from '../utils/storage.js';
 import { addGradientClickToColorBox } from '../utils/colorUtils.js';
-import { state, getMyCollection, setMyCollection } from '../core/state.js';
+import { addHoverTooltipToColorBox } from '../utils/domUtils.js';
+import { state, getMyCollection, setMyCollection, getShoppingCart } from '../core/state.js';
 
 let drawCollectionPointsOnWheel = null;
 let updatePlanningTable = null;
 let updateClosestMatches = null;
+let updateMixingTable = null;
 let filterData = null;
+
+// Get effective collection (merged with shopping if checkbox is checked)
+export function getEffectiveMyCollection() {
+    const myCollection = getMyCollection();
+    const useShoppingColors = loadUseShoppingColors();
+    
+    if (!useShoppingColors) {
+        return myCollection;
+    }
+    
+    // Merge with shopping cart, avoiding duplicates
+    const shoppingCart = getShoppingCart();
+    const merged = [...myCollection];
+    
+    shoppingCart.forEach(shoppingItem => {
+        // Check if already exists in myCollection
+        const exists = merged.some(item => 
+            item.hex === shoppingItem.hex && 
+            item.name === shoppingItem.name &&
+            item.producer === shoppingItem.producer
+        );
+        if (!exists) {
+            merged.push(shoppingItem);
+        }
+    });
+    
+    return merged;
+}
 
 // Save myCollection to localStorage
 export function saveMyCollection() {
@@ -40,6 +71,11 @@ export function addToMyCollection(colorData) {
         // Update planning table if it exists
         if (updatePlanningTable) {
             updatePlanningTable();
+        }
+        
+        // Update mixing table if it exists
+        if (updateMixingTable) {
+            updateMixingTable('mixingFilters');
         }
         
         // Update closest matches when collection changes
@@ -116,6 +152,13 @@ export function loadMyCollection() {
         const colorBox = document.createElement('div');
         colorBox.className = 'color-box';
         colorBox.style.backgroundColor = item.hex;
+        
+        // Store color data for tooltip
+        colorBox.dataset.colorName = item.name || 'Unnamed';
+        colorBox.dataset.colorType = Array.isArray(item.type) ? item.type.join(', ') : (item.type || '');
+        colorBox.dataset.colorProducer = item.producer || '';
+        addHoverTooltipToColorBox(colorBox);
+        
         addGradientClickToColorBox(colorBox, item.hex);
         colorCell.appendChild(colorBox);
         
@@ -160,6 +203,11 @@ export function loadMyCollection() {
                     updatePlanningTable();
                 }
                 
+                // Update mixing table if it exists
+                if (updateMixingTable) {
+                    updateMixingTable('mixingFilters');
+                }
+                
                 // Update closest matches when collection changes
                 if (state.currentColor && updateClosestMatches) {
                     updateClosestMatches();
@@ -181,6 +229,90 @@ export function loadMyCollection() {
     }
 }
 
+// Export collection to JSON file
+export function exportCollectionToJSON() {
+    const myCollection = getMyCollection();
+    const jsonString = JSON.stringify(myCollection, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `my-collection-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Import collection from JSON file
+export function importCollectionFromJSON(jsonData) {
+    let importedColors = [];
+    
+    try {
+        // Parse JSON if it's a string
+        if (typeof jsonData === 'string') {
+            importedColors = JSON.parse(jsonData);
+        } else {
+            importedColors = jsonData;
+        }
+        
+        // Ensure it's an array
+        if (!Array.isArray(importedColors)) {
+            throw new Error('Invalid format: expected an array of colors');
+        }
+        
+        // Add each color to the collection (addToMyCollection handles duplicates)
+        let addedCount = 0;
+        let skippedCount = 0;
+        
+        importedColors.forEach(colorData => {
+            // Validate color data structure
+            if (colorData && (colorData.hex || (colorData.r !== undefined && colorData.g !== undefined && colorData.b !== undefined))) {
+                if (addToMyCollection(colorData)) {
+                    addedCount++;
+                } else {
+                    skippedCount++;
+                }
+            }
+        });
+        
+        // Reload the collection display
+        loadMyCollection();
+        
+        // Show feedback
+        alert(`Import complete!\nAdded: ${addedCount} colors\nSkipped (duplicates): ${skippedCount} colors`);
+        
+        return { added: addedCount, skipped: skippedCount };
+    } catch (error) {
+        console.error('Error importing collection:', error);
+        alert(`Error importing collection: ${error.message}`);
+        return null;
+    }
+}
+
+// Update effective collection usage (notify dependent modules)
+export function notifyEffectiveCollectionChanged() {
+    // Update planning table
+    if (updatePlanningTable) {
+        updatePlanningTable();
+    }
+    
+    // Update mixing table
+    if (updateMixingTable) {
+        updateMixingTable('mixingFilters');
+    }
+    
+    // Update closest matches
+    if (state.currentColor && updateClosestMatches) {
+        updateClosestMatches();
+    }
+    
+    // Update collection wheel
+    if (drawCollectionPointsOnWheel) {
+        drawCollectionPointsOnWheel();
+    }
+}
+
 // Initialize myCollection module
 export function initMyCollection(dependencies = {}) {
     if (dependencies.drawCollectionPointsOnWheel) {
@@ -192,8 +324,72 @@ export function initMyCollection(dependencies = {}) {
     if (dependencies.updateClosestMatches) {
         updateClosestMatches = dependencies.updateClosestMatches;
     }
+    if (dependencies.updateMixingTable) {
+        updateMixingTable = dependencies.updateMixingTable;
+    }
     if (dependencies.filterData) {
         filterData = dependencies.filterData;
+    }
+    
+    // Set up checkbox
+    const useShoppingCheckbox = document.getElementById('useShoppingColorsCheckbox');
+    if (useShoppingCheckbox) {
+        // Load saved state
+        useShoppingCheckbox.checked = loadUseShoppingColors();
+        
+        // Handle checkbox change
+        useShoppingCheckbox.addEventListener('change', (e) => {
+            saveUseShoppingColors(e.target.checked);
+            notifyEffectiveCollectionChanged();
+        });
+    }
+    
+    // Set up save/load buttons
+    const saveBtn = document.getElementById('saveCollectionBtn');
+    const loadBtn = document.getElementById('loadCollectionBtn');
+    const fileInput = document.getElementById('loadCollectionFileInput');
+    
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            const collection = getMyCollection();
+            if (collection.length === 0) {
+                alert('Your collection is empty. Add some colors before saving.');
+                return;
+            }
+            exportCollectionToJSON();
+        });
+    }
+    
+    if (loadBtn && fileInput) {
+        loadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                alert('Please select a JSON file.');
+                fileInput.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    importCollectionFromJSON(event.target.result);
+                } catch (error) {
+                    alert(`Error reading file: ${error.message}`);
+                }
+                fileInput.value = ''; // Reset file input
+            };
+            reader.onerror = () => {
+                alert('Error reading file. Please try again.');
+                fileInput.value = '';
+            };
+            reader.readAsText(file);
+        });
     }
     
     // Load collection on init

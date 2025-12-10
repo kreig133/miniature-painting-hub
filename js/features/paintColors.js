@@ -3,11 +3,13 @@
  */
 
 import { addGradientClickToColorBox } from '../utils/colorUtils.js';
+import { addHoverTooltipToColorBox } from '../utils/domUtils.js';
 import { state, setMergedPaintColors, getMergedPaintColors } from '../core/state.js';
 import { updateHeaderCount } from './myCollection.js';
 
 let filterData = null;
 let addToMyCollection = null;
+let addToShoppingCart = null;
 
 // Merge all paint color data sources into one array
 export function mergePaintColorsData() {
@@ -172,6 +174,13 @@ export function loadPaintColors() {
         const colorBox = document.createElement('div');
         colorBox.className = 'color-box';
         colorBox.style.backgroundColor = item.hex;
+        
+        // Store color data for tooltip
+        colorBox.dataset.colorName = item.name || '';
+        colorBox.dataset.colorType = Array.isArray(item.type) ? item.type.join(', ') : (item.type || '');
+        colorBox.dataset.colorProducer = item.producer || '';
+        addHoverTooltipToColorBox(colorBox);
+        
         addGradientClickToColorBox(colorBox, item.hex);
         colorCell.appendChild(colorBox);
         
@@ -193,6 +202,9 @@ export function loadPaintColors() {
         // Add button column
         const addCell = document.createElement('td');
         addCell.className = 'add-button-cell';
+        addCell.style.position = 'relative';
+        
+        // Add to My Collection button
         const addBtn = document.createElement('button');
         addBtn.className = 'add-to-collection-btn';
         addBtn.textContent = '+';
@@ -218,7 +230,45 @@ export function loadPaintColors() {
                 }, 1000);
             }
         });
-        addCell.appendChild(addBtn);
+        
+        // Add to Shopping Cart button
+        const cartBtn = document.createElement('button');
+        cartBtn.className = 'add-to-cart-btn';
+        cartBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+        `;
+        cartBtn.title = 'Add to Shopping Cart';
+        cartBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Copy name as displayed (from the nameSpan element)
+            const displayedName = nameSpan.textContent || '';
+            
+            const colorData = {
+                name: displayedName,
+                hex: item.hex,
+                type: item.type || [],
+                producer: item.producer || ''
+            };
+            if (addToShoppingCart && addToShoppingCart(colorData)) {
+                cartBtn.classList.add('added');
+                setTimeout(() => {
+                    cartBtn.classList.remove('added');
+                }, 1000);
+            }
+        });
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.gap = '5px';
+        buttonContainer.style.alignItems = 'center';
+        buttonContainer.appendChild(addBtn);
+        buttonContainer.appendChild(cartBtn);
+        addCell.appendChild(buttonContainer);
         
         row.appendChild(colorCell);
         row.appendChild(nameCell);
@@ -234,6 +284,9 @@ export function initPaintColors(dependencies = {}) {
     }
     if (dependencies.addToMyCollection) {
         addToMyCollection = dependencies.addToMyCollection;
+    }
+    if (dependencies.addToShoppingCart) {
+        addToShoppingCart = dependencies.addToShoppingCart;
     }
     
     // Merge data on init

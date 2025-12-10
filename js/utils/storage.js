@@ -20,6 +20,15 @@ export function loadMyCollection() {
     return data ? JSON.parse(data) : [];
 }
 
+export function saveShoppingCart(cart) {
+    localStorage.setItem('shoppingCart', JSON.stringify(cart));
+}
+
+export function loadShoppingCart() {
+    const data = localStorage.getItem('shoppingCart');
+    return data ? JSON.parse(data) : [];
+}
+
 export function saveSortOrder(order) {
     localStorage.setItem('colorSortOrder', order);
 }
@@ -34,6 +43,15 @@ export function saveSaturationThreshold(threshold) {
 
 export function loadSaturationThreshold() {
     const threshold = parseFloat(localStorage.getItem('saturationThreshold'));
+    return isNaN(threshold) ? 90 : threshold;
+}
+
+export function saveSelectedColorSaturationThreshold(threshold) {
+    localStorage.setItem('selectedColorSaturationThreshold', threshold.toString());
+}
+
+export function loadSelectedColorSaturationThreshold() {
+    const threshold = parseFloat(localStorage.getItem('selectedColorSaturationThreshold'));
     return isNaN(threshold) ? 90 : threshold;
 }
 
@@ -71,5 +89,51 @@ export function saveCollectionValueRange(value) {
 export function loadCollectionValueRange() {
     const value = parseFloat(localStorage.getItem('collectionValueRange'));
     return isNaN(value) ? 100 : value;
+}
+
+// Multiple palettes storage
+export function savePalettes(palettes) {
+    localStorage.setItem('palettes', JSON.stringify(palettes));
+}
+
+export function loadPalettes() {
+    const data = localStorage.getItem('palettes');
+    if (data) {
+        return JSON.parse(data);
+    }
+    
+    // Migration: if old single palette exists, convert it
+    const oldPalette = loadPalette();
+    if (oldPalette && oldPalette.length > 0) {
+        const defaultId = 'palette_1';
+        const palettes = {
+            [defaultId]: {
+                id: defaultId,
+                name: 'Palette 1',
+                colors: oldPalette
+            }
+        };
+        savePalettes(palettes);
+        // Keep old palette for backward compatibility
+        return palettes;
+    }
+    
+    return {};
+}
+
+export function saveCurrentPaletteId(paletteId) {
+    localStorage.setItem('currentPaletteId', paletteId);
+}
+
+export function loadCurrentPaletteId() {
+    return localStorage.getItem('currentPaletteId');
+}
+
+export function saveUseShoppingColors(useShopping) {
+    localStorage.setItem('useShoppingColors', useShopping ? 'true' : 'false');
+}
+
+export function loadUseShoppingColors() {
+    return localStorage.getItem('useShoppingColors') === 'true';
 }
 

@@ -7,209 +7,345 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Hamburger Menu Button - Always visible -->
+    <button class="hamburger-menu-btn" id="hamburgerMenuBtn" aria-label="Toggle palettes menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    
+    <!-- Palettes Panel - Outside container, fixed to left -->
+    <div class="palettes-panel" id="palettesPanel">
+        <div class="palettes-panel-header" id="palettesPanelToggle">
+            <h3>Palettes</h3>
+            <span class="panel-toggle-icon">▼</span>
+        </div>
+        <div class="palettes-panel-content" id="palettesPanelContent">
+            <div class="palettes-list" id="palettesList">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            <button class="add-palette-btn" id="addPaletteBtn">+ Add New Palette</button>
+        </div>
+    </div>
+    
     <div class="container">
-        <header>
-            <h1>🎨 Color Palette Picker</h1>
-            <p>Upload an image and click to extract colors</p>
-        </header>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="picker">Palette Editor</button>
-            <button class="tab-btn" data-tab="paintcolors">Paint Colors</button>
-            <button class="tab-btn" data-tab="mycollection">My Collection</button>
-            <button class="tab-btn" data-tab="planning">Planning</button>
+        <!-- Top-level Tabs -->
+        <div class="tabs main-tabs">
+            <button class="tab-btn active" data-tab="painting">Painting</button>
+            <button class="tab-btn" data-tab="collection">Collection</button>
         </div>
 
-        <!-- Color Picker Tab -->
-        <div class="tab-content active" id="pickerTab">
-            <div class="upload-section">
-                <label for="imageUpload" class="upload-label">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    <span>Choose Image</span>
-                </label>
-                <input type="file" id="imageUpload" accept="image/*" hidden>
+        <!-- Painting Tab Content -->
+        <div class="tab-content active" id="paintingTab">
+            <!-- Sub-tabs for Painting -->
+            <div class="tabs sub-tabs">
+                <button class="tab-btn active" data-tab="picker" data-parent="painting">Palette Editor</button>
+                <button class="tab-btn" data-tab="planning" data-parent="painting">Planning</button>
+                <button class="tab-btn" data-tab="mixing" data-parent="painting">Mixing Colour</button>
             </div>
+            
+            <!-- Palette Editor Sub-tab -->
+            <div class="sub-tab-content active" id="pickerTab">
+                <div class="upload-section">
+                    <label for="imageUpload" class="upload-label">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Choose Image</span>
+                    </label>
+                    <input type="file" id="imageUpload" accept="image/*" hidden>
+                </div>
 
-            <div class="image-section" id="imageSection" style="display: none;">
-                <div class="canvas-container">
-                    <canvas id="imageCanvas"></canvas>
-                    <div class="magnifying-glass" id="imageMagnifyingGlass">
-                        <canvas id="imageMagnifyingGlassCanvas"></canvas>
+                <div class="image-section" id="imageSection" style="display: none;">
+                    <div class="canvas-container">
+                        <canvas id="imageCanvas"></canvas>
+                        <div class="magnifying-glass" id="imageMagnifyingGlass">
+                            <canvas id="imageMagnifyingGlassCanvas"></canvas>
+                        </div>
+                        <div class="cursor-info" id="cursorInfo"></div>
                     </div>
-                    <div class="cursor-info" id="cursorInfo"></div>
+                    <div class="instructions">
+                        <p>Click anywhere on the image to pick a color</p>
+                    </div>
                 </div>
-                <div class="instructions">
-                    <p>Click anywhere on the image to pick a color</p>
-                </div>
-            </div>
 
-            <div class="current-color" id="currentColorSection" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="margin: 0;">Selected Color</h3>
-                    <button class="filter-toggle-btn" id="selectedColorFilterBtn">Filter</button>
-                </div>
-                <div class="filter-container" id="selectedColorFilters" style="display: none;">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-                <div class="color-preview-wrapper">
-                    <div class="color-preview" id="colorPreview"></div>
-                    <div class="closest-matches" id="closestMatchesSection">
-                        <div class="match-item">
-                            <label>Palette 1</label>
-                            <div class="match-color-box" id="palette1Color"></div>
-                        </div>
-                        <div class="match-item">
-                            <label>Palette 2</label>
-                            <div class="match-color-box" id="palette2Color"></div>
-                        </div>
-                        <div class="match-item">
-                            <label>Collection 1</label>
-                            <div class="match-color-box" id="collection1Color"></div>
-                        </div>
-                        <div class="match-item">
-                            <label>Collection 2</label>
-                            <div class="match-color-box" id="collection2Color"></div>
+                <div class="current-color" id="currentColorSection" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">Selected Color</h3>
+                        <button class="filter-toggle-btn" id="selectedColorFilterBtn">Filter</button>
+                    </div>
+                    <div class="filter-container" id="selectedColorFilters" style="display: none;">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <div class="color-preview-wrapper">
+                        <div class="color-preview" id="colorPreview"></div>
+                        <div class="closest-matches" id="closestMatchesSection">
+                            <div class="match-item">
+                                <label>Palette 1</label>
+                                <div class="match-color-box" id="palette1Color"></div>
+                            </div>
+                            <div class="match-item">
+                                <label>Palette 2</label>
+                                <div class="match-color-box" id="palette2Color"></div>
+                            </div>
+                            <div class="match-item">
+                                <label>Collection 1</label>
+                                <div class="match-color-box" id="collection1Color"></div>
+                            </div>
+                            <div class="match-item">
+                                <label>Collection 2</label>
+                                <div class="match-color-box" id="collection2Color"></div>
+                            </div>
+                            <div class="match-item">
+                                <label>From All</label>
+                                <div class="match-color-box" id="fromAllColor"></div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="color-info">
-                    <div class="color-value">
-                        <label>HEX:</label>
-                        <input type="text" id="hexValue" readonly>
-                        <button class="copy-btn" data-copy="hex">Copy</button>
+                    <div class="color-info">
+                        <div class="color-value">
+                            <label>HEX:</label>
+                            <input type="text" id="hexValue" readonly>
+                            <button class="copy-btn" data-copy="hex">Copy</button>
+                        </div>
+                        <div class="color-value">
+                            <label>RGB:</label>
+                            <input type="text" id="rgbValue" readonly>
+                            <button class="copy-btn" data-copy="rgb">Copy</button>
+                        </div>
                     </div>
-                    <div class="color-value">
-                        <label>RGB:</label>
-                        <input type="text" id="rgbValue" readonly>
-                        <button class="copy-btn" data-copy="rgb">Copy</button>
-                    </div>
+                    <button class="save-btn" id="saveColorBtn">Save to Palette</button>
                 </div>
-                <button class="save-btn" id="saveColorBtn">Save to Palette</button>
-            </div>
 
-            <div class="palette-section">
-            <div class="palette-header">
-                <h2>Your Palette</h2>
-                <div class="palette-controls">
-                    <select id="sortOrderSelect" class="sort-order-select">
-                        <option value="hsv">Hue-Saturation-Value</option>
-                        <option value="hvs">Hue-Value-Saturation</option>
-                        <option value="shv">Saturation-Hue-Value</option>
-                        <option value="svh">Saturation-Value-Hue</option>
-                        <option value="vhs">Value-Hue-Saturation</option>
-                        <option value="vsh">Value-Saturation-Hue</option>
-                    </select>
-                    <button class="show-wheel-btn" id="showWheelBtn">Show Wheel</button>
+                <div class="palette-section-wrapper">
+                    <div class="palette-section">
+                        <div class="palette-header">
+                            <h2 id="currentPaletteName">Your Palette</h2>
+                            <div class="palette-controls">
+                                <select id="sortOrderSelect" class="sort-order-select">
+                                    <option value="hsv">Hue-Saturation-Value</option>
+                                    <option value="hvs">Hue-Value-Saturation</option>
+                                    <option value="shv">Saturation-Hue-Value</option>
+                                    <option value="svh">Saturation-Value-Hue</option>
+                                    <option value="vhs">Value-Hue-Saturation</option>
+                                    <option value="vsh">Value-Saturation-Hue</option>
+                                </select>
+                                <button class="show-wheel-btn" id="showWheelBtn">Show Wheel</button>
+                            </div>
+                        </div>
+                        <div class="palette-grid" id="paletteGrid">
+                            <p class="empty-message">No colors saved yet. Upload an image and start picking!</p>
+                        </div>
+                        <button class="clear-btn" id="clearPaletteBtn" style="display: none;">Clear Palette</button>
+                    </div>
                 </div>
             </div>
-                <div class="palette-grid" id="paletteGrid">
-                    <p class="empty-message">No colors saved yet. Upload an image and start picking!</p>
+            
+            <!-- Planning Sub-tab -->
+            <div class="sub-tab-content" id="planningTab">
+                <div class="planning-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;" id="planningHeader">Planning</h2>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label for="saturationThreshold" style="font-weight: 500; color: #667eea;">Saturation Threshold (%):</label>
+                            <input type="number" id="saturationThreshold" min="0" max="100" value="90" style="width: 80px; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95rem; outline: none;" />
+                        </div>
+                    </div>
+                    <div class="filter-container" id="planningFilters">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <div class="table-container">
+                        <table id="planningTable">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <div class="table-header-with-controls">
+                                            <span>Colour</span>
+                                            <select id="sortOrderSelectPlanning" class="sort-order-select">
+                                                <option value="hsv">Hue-Saturation-Value</option>
+                                                <option value="hvs">Hue-Value-Saturation</option>
+                                                <option value="shv">Saturation-Hue-Value</option>
+                                                <option value="svh">Saturation-Value-Hue</option>
+                                                <option value="vhs">Value-Hue-Saturation</option>
+                                                <option value="vsh">Value-Saturation-Hue</option>
+                                            </select>
+                                        </div>
+                                    </th>
+                                    <th>Candidate 1</th>
+                                    <th>Candidate 2</th>
+                                    <th>From All</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <button class="clear-btn" id="clearPaletteBtn" style="display: none;">Clear Palette</button>
+            </div>
+            
+            <!-- Mixing Colour Sub-tab -->
+            <div class="sub-tab-content" id="mixingTab">
+                <div class="mixing-section">
+                    <div class="palette-header">
+                        <h2>Mixing Colour</h2>
+                    </div>
+                    <div class="filter-container" id="mixingFilters">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <div class="table-container">
+                        <table id="mixingTable">
+                            <thead>
+                                <tr>
+                                    <th>Colour 1</th>
+                                    <th>Colour 2</th>
+                                    <th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Paint Colors Tab -->
-        <div class="tab-content" id="paintcolorsTab">
-            <div class="products-section">
-                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                    <h2 style="margin: 0;" id="paintColorsHeader">Paint Colors</h2>
-                </div>
-                <div class="filter-container" id="paintColorsFilters">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-                <div class="table-container">
-                    <table id="paintColorsTable">
-                        <thead>
-                            <tr>
-                                <th>Colour</th>
-                                <th>Name</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Will be populated by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
+        <!-- Collection Tab Content -->
+        <div class="tab-content" id="collectionTab">
+            <!-- Sub-tabs for Collection -->
+            <div class="tabs sub-tabs">
+                <button class="tab-btn active" data-tab="mycollection" data-parent="collection">My Collection</button>
+                <button class="tab-btn" data-tab="shopping" data-parent="collection">Shopping</button>
+                <button class="tab-btn" data-tab="paintcolors" data-parent="collection">Paint Colours</button>
             </div>
-        </div>
-
-        <!-- My Collection Tab -->
-        <div class="tab-content" id="mycollectionTab">
-            <div class="mycollection-section">
-                <div class="palette-header">
-                    <h2 id="myCollectionHeader">My Collection</h2>
-                    <div class="palette-controls">
-                        <button class="show-wheel-btn" id="addColorBtn">Add Color</button>
-                        <button class="show-wheel-btn" id="showCollectionWheelBtn">Show Wheel</button>
+            
+            <!-- My Collection Sub-tab -->
+            <div class="sub-tab-content active" id="mycollectionTab">
+                <div class="mycollection-section">
+                    <div class="palette-header">
+                        <h2 id="myCollectionHeader">My Collection</h2>
+                        <div class="palette-header-actions">
+                            <label class="checkbox-label" title="Include Shopping cart colors">
+                                <input type="checkbox" id="useShoppingColorsCheckbox">
+                                <span>Use colours from shopping</span>
+                            </label>
+                            <button class="icon-btn" id="saveCollectionBtn" title="Save Collection as JSON">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" id="loadCollectionBtn" title="Load Collection from JSON">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                            </button>
+                            <input type="file" id="loadCollectionFileInput" accept=".json" style="display: none;">
+                        </div>
+                        <div class="palette-controls">
+                            <button class="show-wheel-btn" id="addColorBtn">Add Color</button>
+                            <button class="show-wheel-btn" id="showCollectionWheelBtn">Show Wheel</button>
+                        </div>
+                    </div>
+                    <div class="filter-container" id="myCollectionFilters">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <div class="table-container">
+                        <table id="myCollectionTable">
+                            <thead>
+                                <tr>
+                                    <th>Colour</th>
+                                    <th>Name</th>
+                                    <th>Producer</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="filter-container" id="myCollectionFilters">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-                <div class="table-container">
-                    <table id="myCollectionTable">
-                        <thead>
-                            <tr>
-                                <th>Colour</th>
-                                <th>Name</th>
-                                <th>Producer</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Will be populated by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
             </div>
-        </div>
-
-        <!-- Planning Tab -->
-        <div class="tab-content" id="planningTab">
-            <div class="planning-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0;" id="planningHeader">Planning</h2>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <label for="saturationThreshold" style="font-weight: 500; color: #667eea;">Saturation Threshold (%):</label>
-                        <input type="number" id="saturationThreshold" min="0" max="100" value="90" style="width: 80px; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95rem; outline: none;" />
+            
+            <!-- Shopping Sub-tab -->
+            <div class="sub-tab-content" id="shoppingTab">
+                <div class="shopping-section">
+                    <div class="palette-header">
+                        <h2 id="shoppingHeader">Shopping</h2>
+                        <div class="palette-header-actions">
+                            <button class="icon-btn" id="saveShoppingBtn" title="Save Shopping List as JSON">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" id="loadShoppingBtn" title="Load Shopping List from JSON">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                            </button>
+                            <input type="file" id="loadShoppingFileInput" accept=".json" style="display: none;">
+                        </div>
+                    </div>
+                    <div class="filter-container" id="shoppingFilters">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <div class="table-container">
+                        <table id="shoppingTable">
+                            <thead>
+                                <tr>
+                                    <th>Colour</th>
+                                    <th>Name</th>
+                                    <th>Producer</th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="filter-container" id="planningFilters">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-                <div class="table-container">
-                    <table id="planningTable">
-                        <thead>
-                            <tr>
-                                <th>
-                                    <div class="table-header-with-controls">
-                                        <span>Colour</span>
-                                        <select id="sortOrderSelectPlanning" class="sort-order-select">
-                                            <option value="hsv">Hue-Saturation-Value</option>
-                                            <option value="hvs">Hue-Value-Saturation</option>
-                                            <option value="shv">Saturation-Hue-Value</option>
-                                            <option value="svh">Saturation-Value-Hue</option>
-                                            <option value="vhs">Value-Hue-Saturation</option>
-                                            <option value="vsh">Value-Saturation-Hue</option>
-                                        </select>
-                                    </div>
-                                </th>
-                                <th>Candidate</th>
-                                <th>Second Candidate</th>
-                                <th>Closest from My Collection</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Will be populated by JavaScript -->
-                        </tbody>
-                    </table>
+            </div>
+            
+            <!-- Paint Colors Sub-tab -->
+            <div class="sub-tab-content" id="paintcolorsTab">
+                <div class="products-section">
+                    <div class="palette-header">
+                        <h2 id="paintColorsHeader">Paint Colours</h2>
+                        <div class="palette-controls">
+                            <button class="show-wheel-btn" id="showPaintColorsWheelBtn">Show Wheel</button>
+                        </div>
+                    </div>
+                    <div class="filter-container" id="paintColorsFilters">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <div class="table-container">
+                        <table id="paintColorsTable">
+                            <thead>
+                                <tr>
+                                    <th>Colour</th>
+                                    <th>Name</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -267,7 +403,7 @@
         <!-- Floating Color Wheel -->
         <div class="floating-color-wheel" id="floatingColorWheel">
             <div class="floating-wheel-header">
-                <span>Color Wheel</span>
+                <span>Palette Colour Wheel</span>
                 <button class="close-wheel-btn" id="closeWheelBtn">×</button>
             </div>
             <div class="color-wheel-container">
@@ -295,7 +431,7 @@
         <!-- Floating Collection Color Wheel -->
         <div class="floating-color-wheel" id="floatingCollectionWheel">
             <div class="floating-wheel-header">
-                <span>Collection Color Wheel</span>
+                <span>Collection Colour Wheel</span>
                 <button class="close-wheel-btn" id="closeCollectionWheelBtn">×</button>
             </div>
             <div class="color-wheel-container">
@@ -319,6 +455,34 @@
                 </div>
             </div>
         </div>
+
+        <!-- Floating Paint Colors Color Wheel -->
+        <div class="floating-color-wheel" id="floatingPaintColorsWheel">
+            <div class="floating-wheel-header">
+                <span>Paint Colours Wheel</span>
+                <button class="close-wheel-btn" id="closePaintColorsWheelBtn">×</button>
+            </div>
+            <div class="color-wheel-container">
+                <div class="color-wheel-wrapper">
+                    <canvas id="paintColorsWheelCanvas"></canvas>
+                    <div class="magnifying-glass" id="paintColorsMagnifyingGlass">
+                        <canvas id="paintColorsMagnifyingGlassCanvas"></canvas>
+                    </div>
+                </div>
+                <div class="wheel-controls">
+                    <div class="slider-control">
+                        <label for="paintColorsValueSlider">Value:</label>
+                        <input type="range" id="paintColorsValueSlider" min="0" max="100" value="50" class="value-slider">
+                        <span id="paintColorsValueDisplay">50</span>
+                    </div>
+                    <div class="slider-control">
+                        <label for="paintColorsRangeSlider">Range:</label>
+                        <input type="range" id="paintColorsRangeSlider" min="0" max="100" value="100" class="range-slider">
+                        <span id="paintColorsRangeDisplay">100</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Data files (loaded as regular scripts) -->
@@ -334,4 +498,3 @@
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
-

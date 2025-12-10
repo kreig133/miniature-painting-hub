@@ -4,20 +4,22 @@
  */
 
 import { initState, state, setPalette, setSortOrder, getCurrentColor } from './core/state.js';
-import { loadPalette as loadPaletteFromStorage, saveSortOrder } from './utils/storage.js';
+import { saveSortOrder } from './utils/storage.js';
 import { generateSplitGradient } from './utils/colorUtils.js';
 import { addHoverTooltipToColorBox } from './utils/domUtils.js';
 
 // UI Components
 import { initTabs } from './ui/tabs.js';
 import { initAddColorModal } from './ui/modals.js';
+import { initPalettesPanel, loadPalettesList } from './ui/palettesPanel.js';
 
 // Features
-import { initPalette, loadPalette, sortPaletteByHSV, savePalette, addColorToPalette } from './features/palette.js';
+import { initPalette, loadPalette, sortPaletteByHSV, savePalette, addColorToPalette, updatePaletteName } from './features/palette.js';
 import { initImagePicker, updateClosestMatchesDisplay, displayCurrentColor } from './features/imagePicker.js';
-import { initMyCollection, loadMyCollection, addToMyCollection, updateHeaderCount } from './features/myCollection.js';
+import { initMyCollection, loadMyCollection, addToMyCollection, updateHeaderCount, notifyEffectiveCollectionChanged } from './features/myCollection.js';
+import { initShopping, loadShoppingCart, addToShoppingCart } from './features/shopping.js';
 import { initPaintColors, mergePaintColorsData, loadPaintColors, getUniqueProducersAndTypes } from './features/paintColors.js';
-import { initFilters, createFilterCheckboxes, filterData } from './features/filters.js';
+import { initFilters, createFilterCheckboxes, filterData, setMixingCallback } from './features/filters.js';
 import { 
     initPlanning, 
     loadPlanningTable, 
@@ -26,15 +28,20 @@ import {
     findClosestFromPalette,
     findNthClosestFromPalette,
     findClosestFromMyCollection,
-    findNthClosestFromMyCollection
+    findNthClosestFromMyCollection,
+    findClosestFromPaintColors
 } from './features/planning.js';
+import { initMixing, loadMixingTable } from './features/mixing.js';
 import {
     initColorWheel,
     drawPalettePointsOnWheel,
     drawCollectionPointsOnWheel,
+    drawPaintColorsPointsOnWheel,
     initFloatingWheel,
     initCollectionFloatingWheel,
+    initPaintColorsFloatingWheel,
     initCollectionWheel,
+    initPaintColorsWheel,
     initColorWheelSliders,
     initSelectedColorFilterToggle,
     highlightAndScrollToPaletteItem,
@@ -46,11 +53,13 @@ export function init() {
     // 1. Initialize state from localStorage
     initState();
     
-    // 2. Sort palette with saved sort order on load
-    const palette = loadPaletteFromStorage();
-    const sortedPalette = sortPaletteByHSV(palette, state.sortOrder);
-    setPalette(sortedPalette);
-    savePalette();
+    // 2. Sort current palette with saved sort order on load (if we have palettes)
+    if (state.currentPaletteId && state.palettes[state.currentPaletteId]) {
+        const currentPaletteColors = state.palettes[state.currentPaletteId].colors || [];
+        const sortedPalette = sortPaletteByHSV(currentPaletteColors, state.sortOrder);
+        setPalette(sortedPalette);
+        savePalette();
+    }
     
     // 3. Merge paint colors data (must happen before filters)
     mergePaintColorsData();
@@ -58,7 +67,23 @@ export function init() {
     // 4. Initialize UI components (no dependencies)
     initTabs();
     
+    // Initialize palettes panel
+    initPalettesPanel({
+        loadPalette: () => {
+            loadPalette();
+            if (drawPalettePointsOnWheel) {
+                drawPalettePointsOnWheel();
+            }
+        },
+        updatePaletteName,
+        updatePalettesList: loadPalettesList,
+        updatePlanningTable: () => {
+            loadPlanningTable();
+        }
+    });
+    
     // 5. Initialize filters (needs paint colors data)
+    // Note: drawPaintColorsPointsOnWheel will be set after color wheel is initialized
     initFilters({
         loadPaintColors,
         loadMyCollection,
@@ -71,14 +96,17 @@ export function init() {
             updateClosestMatchesDisplay();
         },
         drawCollectionPointsOnWheel,
+        drawPaintColorsPointsOnWheel,
         getCurrentColor
     });
     
     // Create filter checkboxes after filters module is initialized
     createFilterCheckboxes('paintColorsFilters');
     createFilterCheckboxes('myCollectionFilters');
+    createFilterCheckboxes('shoppingFilters');
     createFilterCheckboxes('planningFilters');
     createFilterCheckboxes('selectedColorFilters');
+    createFilterCheckboxes('mixingFilters');
     
     // 6. Initialize my collection (needed before paint colors)
     initMyCollection({
@@ -91,16 +119,26 @@ export function init() {
         updateClosestMatches: () => {
             updateClosestMatchesDisplay();
         },
+        updateMixingTable: loadMixingTable,
         filterData
     });
     
-    // 7. Initialize paint colors (after myCollection is ready)
-    initPaintColors({
+    // 7. Initialize shopping (before paint colors to provide addToShoppingCart)
+    initShopping({
         filterData,
-        addToMyCollection
+        drawCollectionPointsOnWheel,
+        notifyEffectiveCollectionChanged,
+        loadMyCollection
     });
     
-    // 8. Initialize palette
+    // 8. Initialize paint colors (after myCollection and shopping are ready)
+    initPaintColors({
+        filterData,
+        addToMyCollection,
+        addToShoppingCart
+    });
+    
+    // 9. Initialize palette
     initPalette({
         drawPalettePointsOnWheel,
         updateClosestMatches: () => {
@@ -110,9 +148,16 @@ export function init() {
             if (window.updatePlanningTable) {
                 window.updatePlanningTable();
             }
-        }
+        },
+        updatePalettesList: loadPalettesList
     });
     loadPalette();
+    
+    // Update palette name in header
+    updatePaletteName();
+    
+    // Load palettes list in panel
+    loadPalettesList();
     
     // 9. Initialize image picker
     initImagePicker({
@@ -121,6 +166,7 @@ export function init() {
         findNthClosestFromPalette,
         findClosestFromMyCollection,
         findNthClosestFromMyCollection,
+        findClosestFromPaintColors,
         addHoverTooltipToColorBox,
         addColorToPalette
     });
@@ -162,16 +208,26 @@ export function init() {
     // 15. Initialize selected color filter toggle
     initSelectedColorFilterToggle();
     
-    // 16. Load initial data
+    // 16. Set up mixing callback for filters
+    setMixingCallback(loadMixingTable);
+    
+    // 17. Initialize mixing feature
+    initMixing();
+    
+    // 18. Load initial data
     loadPaintColors();
     loadMyCollection();
     loadPlanningTable();
+    loadMixingTable();
+    loadMixingTable();
     
     // 17. Initialize floating wheels (use setTimeout to ensure DOM is ready)
     setTimeout(() => {
         initFloatingWheel();
         initCollectionFloatingWheel();
+        initPaintColorsFloatingWheel();
         initCollectionWheel();
+        initPaintColorsWheel();
         initColorWheelSliders();
     }, 0);
     
