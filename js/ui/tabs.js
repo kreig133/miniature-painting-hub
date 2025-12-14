@@ -13,6 +13,11 @@ export function initTabs() {
         if (hamburgerBtn) {
             if (activeTab === 'painting') {
                 hamburgerBtn.style.display = 'flex';
+                // Reset button position when switching back to Painting (panel is closed by default)
+                const panel = document.getElementById('palettesPanel');
+                if (panel && !panel.classList.contains('open')) {
+                    hamburgerBtn.style.left = '';
+                }
             } else {
                 hamburgerBtn.style.display = 'none';
                 // Also close the panel if it's open when switching to Collection tab
@@ -22,6 +27,8 @@ export function initTabs() {
                     document.body.classList.remove('panel-open');
                     hamburgerBtn.classList.remove('active');
                 }
+                // Reset button position
+                hamburgerBtn.style.left = '';
             }
         }
     }
@@ -83,6 +90,27 @@ export function initTabs() {
                 const targetContent = document.getElementById(targetTab + 'Tab');
                 if (targetContent) {
                     targetContent.classList.add('active');
+                    
+                    // If Planning tab is activated, check and set mode based on mappings
+                    if (targetTab === 'planning') {
+                        // Calculate and set mode based on mappings:
+                        // - If there is mapping -> view mode
+                        // - No mapping -> edit mode
+                        // This will automatically trigger loadPlanningTable() and button update via subscriptions
+                        if (window.checkAndSetPlanningMode) {
+                            window.checkAndSetPlanningMode();
+                        }
+                    }
+                    
+                    // If References tab is activated, load the gallery
+                    if (targetTab === 'references') {
+                        import('../features/references.js').then(({ loadReferencesGallery, initReferences }) => {
+                            initReferences(); // Initialize modal if not already done
+                            loadReferencesGallery();
+                        }).catch(err => {
+                            console.error('Error loading references gallery:', err);
+                        });
+                    }
                 }
             }
         });

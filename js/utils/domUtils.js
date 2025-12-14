@@ -58,6 +58,12 @@ export function addHoverTooltipToColorBox(colorBox, forceUpdate = false) {
     
     // Attach to color box
     colorBox.addEventListener('mouseenter', function(e) {
+        // Don't show tooltip if hovering directly over a status icon or its children
+        // Check if the target itself is the status icon or is inside it
+        const statusIcon = colorBox.querySelector('.planning-paint-status-icon');
+        if (statusIcon && (statusIcon === e.target || statusIcon.contains(e.target))) {
+            return;
+        }
         if (tooltip && tooltip.parentNode) {
             tooltip.style.display = 'block';
             updateTooltipPosition(e, colorBox, tooltip);
@@ -65,6 +71,15 @@ export function addHoverTooltipToColorBox(colorBox, forceUpdate = false) {
     });
     
     colorBox.addEventListener('mousemove', function(e) {
+        // Don't show tooltip if hovering directly over a status icon or its children
+        // Check if the target itself is the status icon or is inside it
+        const statusIcon = colorBox.querySelector('.planning-paint-status-icon');
+        if (statusIcon && (statusIcon === e.target || statusIcon.contains(e.target))) {
+            if (tooltip && tooltip.parentNode) {
+                tooltip.style.display = 'none';
+            }
+            return;
+        }
         if (tooltip && tooltip.parentNode && tooltip.style.display === 'block') {
             updateTooltipPosition(e, colorBox, tooltip);
         }

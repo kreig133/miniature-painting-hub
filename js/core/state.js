@@ -2,10 +2,11 @@
  * Application state management
  */
 
-import { loadPalette, loadMyCollection, loadShoppingCart, loadSortOrder, loadSaturationThreshold, loadSelectedColorSaturationThreshold, 
+import { loadPalette, loadMyCollection, loadShoppingCart, loadSortOrder, 
          loadPaletteValueMiddle, loadPaletteValueRange, 
          loadCollectionValueMiddle, loadCollectionValueRange,
-         loadPalettes, loadCurrentPaletteId, saveCurrentPaletteId } from '../utils/storage.js';
+         loadPalettes, loadCurrentPaletteId, saveCurrentPaletteId,
+         loadPlanningMappings } from '../utils/storage.js';
 
 // Application state
 export const state = {
@@ -25,12 +26,15 @@ export const state = {
     // Shopping cart
     shoppingCart: [],
     
+    // Planning mappings: { paletteId: { colorHex: { candidate1: {...}, candidate2: {...}, fromAll: {...} } } }
+    planningMappings: {},
+    
+    // Planning mode: 'edit' or 'view'
+    planningMode: 'edit',
+    
     // Sort order
     sortOrder: 'hsv',
     
-    // Saturation threshold
-    saturationThreshold: 90,
-    selectedColorSaturationThreshold: 90, // For Palette Editor
     
     // Color wheel settings
     paletteValueMiddle: 50,
@@ -113,9 +117,8 @@ export function initState() {
     
     state.myCollection = loadMyCollection();
     state.shoppingCart = loadShoppingCart();
+    state.planningMappings = loadPlanningMappings();
     state.sortOrder = loadSortOrder();
-    state.saturationThreshold = loadSaturationThreshold();
-    state.selectedColorSaturationThreshold = loadSelectedColorSaturationThreshold();
     state.paletteValueMiddle = loadPaletteValueMiddle();
     state.paletteValueRange = loadPaletteValueRange();
     state.collectionValueMiddle = loadCollectionValueMiddle();
@@ -147,6 +150,49 @@ export function getShoppingCart() {
 
 export function setShoppingCart(cart) {
     state.shoppingCart = cart;
+}
+
+export function getPlanningMappings() {
+    return state.planningMappings;
+}
+
+export function setPlanningMappings(mappings) {
+    state.planningMappings = mappings;
+}
+
+export function getPlanningMode() {
+    return state.planningMode;
+}
+
+// Callbacks for planning mode changes
+let planningModeChangeCallbacks = [];
+
+export function setPlanningMode(mode) {
+    const oldMode = state.planningMode;
+    
+    // Only update and notify if mode actually changed
+    if (oldMode !== mode) {
+        state.planningMode = mode;
+        
+        // Notify all subscribers
+        planningModeChangeCallbacks.forEach(callback => {
+            try {
+                callback(mode, oldMode);
+            } catch (error) {
+                console.error('Error in planning mode change callback:', error);
+            }
+        });
+    }
+}
+
+export function onPlanningModeChange(callback) {
+    if (typeof callback === 'function') {
+        planningModeChangeCallbacks.push(callback);
+    }
+}
+
+export function offPlanningModeChange(callback) {
+    planningModeChangeCallbacks = planningModeChangeCallbacks.filter(cb => cb !== callback);
 }
 
 export function getMergedPaintColors() {
@@ -208,11 +254,4 @@ export function setSortOrder(order) {
     state.sortOrder = order;
 }
 
-export function setSaturationThreshold(threshold) {
-    state.saturationThreshold = threshold;
-}
-
-export function setSelectedColorSaturationThreshold(threshold) {
-    state.selectedColorSaturationThreshold = threshold;
-}
 

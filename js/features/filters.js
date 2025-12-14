@@ -3,8 +3,6 @@
  */
 
 import { getUniqueProducersAndTypes } from './paintColors.js';
-import { state, setSelectedColorSaturationThreshold } from '../core/state.js';
-import { saveSelectedColorSaturationThreshold, loadSelectedColorSaturationThreshold } from '../utils/storage.js';
 
 // Callbacks for dependencies
 let loadPaintColors = null;
@@ -23,6 +21,40 @@ export function createFilterCheckboxes(containerId) {
     const { producers, types } = getUniqueProducersAndTypes();
     
     container.innerHTML = '';
+    
+    // Name filter group
+    const nameGroup = document.createElement('div');
+    nameGroup.className = 'filter-group';
+    nameGroup.style.marginBottom = '20px';
+    
+    const nameLabel = document.createElement('label');
+    nameLabel.style.fontWeight = '500';
+    nameLabel.style.color = '#667eea';
+    nameLabel.style.display = 'flex';
+    nameLabel.style.alignItems = 'center';
+    nameLabel.style.gap = '10px';
+    nameLabel.textContent = 'Filter by name:';
+    
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.id = `${containerId}-name-filter`;
+    nameInput.placeholder = 'Enter color name...';
+    nameInput.style.width = '100%';
+    nameInput.style.maxWidth = '300px';
+    nameInput.style.padding = '8px 12px';
+    nameInput.style.border = '2px solid #e0e0e0';
+    nameInput.style.borderRadius = '8px';
+    nameInput.style.fontSize = '0.95rem';
+    nameInput.style.outline = 'none';
+    nameInput.dataset.filterType = 'name';
+    
+    nameInput.addEventListener('input', () => {
+        triggerReload(containerId);
+    });
+    
+    nameLabel.appendChild(nameInput);
+    nameGroup.appendChild(nameLabel);
+    container.appendChild(nameGroup);
     
     // Producer filter group
     const producerGroup = document.createElement('div');
@@ -154,45 +186,6 @@ export function createFilterCheckboxes(containerId) {
     typeGroup.appendChild(typeCheckboxes);
     container.appendChild(typeGroup);
     
-    // Add saturation threshold for Palette Editor (selectedColorFilters)
-    if (containerId === 'selectedColorFilters') {
-        const thresholdGroup = document.createElement('div');
-        thresholdGroup.className = 'filter-group';
-        thresholdGroup.style.marginTop = '20px';
-        thresholdGroup.style.paddingTop = '20px';
-        thresholdGroup.style.borderTop = '1px solid #e0e0e0';
-        
-        const thresholdLabel = document.createElement('label');
-        thresholdLabel.style.fontWeight = '500';
-        thresholdLabel.style.color = '#667eea';
-        thresholdLabel.style.display = 'flex';
-        thresholdLabel.style.alignItems = 'center';
-        thresholdLabel.style.gap = '10px';
-        thresholdLabel.textContent = 'Saturation Threshold (%):';
-        
-        const thresholdInput = document.createElement('input');
-        thresholdInput.type = 'number';
-        thresholdInput.id = 'selectedColorSaturationThreshold';
-        thresholdInput.min = '0';
-        thresholdInput.max = '100';
-        thresholdInput.value = '90';
-        thresholdInput.style.width = '80px';
-        thresholdInput.style.padding = '8px 12px';
-        thresholdInput.style.border = '2px solid #e0e0e0';
-        thresholdInput.style.borderRadius = '8px';
-        thresholdInput.style.fontSize = '0.95rem';
-        thresholdInput.style.outline = 'none';
-        
-        thresholdLabel.appendChild(thresholdInput);
-        thresholdGroup.appendChild(thresholdLabel);
-        container.appendChild(thresholdGroup);
-        
-        // Initialize the threshold input after it's created
-        setTimeout(() => {
-            initSelectedColorSaturationThreshold();
-        }, 0);
-    }
-    
     // Add event listeners to all checkboxes
     const allCheckboxes = container.querySelectorAll('input[type="checkbox"]');
     allCheckboxes.forEach(checkbox => {
@@ -238,6 +231,10 @@ function triggerReload(containerId) {
         if (loadMixingTable) {
             loadMixingTable('mixingFilters');
         }
+    } else if (containerId === 'customMixColorSelectFilters') {
+        if (window.updateCustomMixColorSelectTable) {
+            window.updateCustomMixColorSelectTable();
+        }
     }
 }
 
@@ -245,18 +242,21 @@ function triggerReload(containerId) {
 export function getSelectedFilters(containerId) {
     const container = document.getElementById(containerId);
     if (!container) {
-        return { producers: [], types: [] };
+        return { producers: [], types: [], name: '' };
     }
     
     const producerCheckboxes = container.querySelectorAll('input[data-filter-type="producer"]:checked');
     const typeCheckboxes = container.querySelectorAll('input[data-filter-type="type"]:checked');
+    const nameInput = container.querySelector('input[data-filter-type="name"]');
     
     const selectedProducers = Array.from(producerCheckboxes).map(cb => cb.value);
     const selectedTypes = Array.from(typeCheckboxes).map(cb => cb.value);
+    const nameFilter = nameInput ? nameInput.value.trim() : '';
     
     return {
         producers: selectedProducers,
-        types: selectedTypes
+        types: selectedTypes,
+        name: nameFilter
     };
 }
 
@@ -266,8 +266,8 @@ export function filterData(data, containerId) {
     
     const filters = getSelectedFilters(containerId);
     
-    // If no filters selected, return empty array
-    if (filters.producers.length === 0 && filters.types.length === 0) {
+    // If no filters selected (no producers, no types, and no name), return empty array
+    if (filters.producers.length === 0 && filters.types.length === 0 && filters.name === '') {
         return [];
     }
     
@@ -288,7 +288,15 @@ export function filterData(data, containerId) {
             }
         }
         
-        return producerMatch && typeMatch;
+        // Name filter (substring, case-insensitive)
+        let nameMatch = true;
+        if (filters.name !== '') {
+            const itemName = (item.name || '').toLowerCase();
+            const filterName = filters.name.toLowerCase();
+            nameMatch = itemName.includes(filterName);
+        }
+        
+        return producerMatch && typeMatch && nameMatch;
     });
 }
 
@@ -314,32 +322,6 @@ export function initFilters(dependencies = {}) {
     }
     if (dependencies.getCurrentColor) {
         getCurrentColor = dependencies.getCurrentColor;
-    }
-}
-
-// Initialize saturation threshold for Palette Editor
-function initSelectedColorSaturationThreshold() {
-    const saturationThresholdInput = document.getElementById('selectedColorSaturationThreshold');
-    if (saturationThresholdInput && !saturationThresholdInput.dataset.initialized) {
-        // Mark as initialized to avoid duplicate event listeners
-        saturationThresholdInput.dataset.initialized = 'true';
-        
-        // Load saved value
-        const savedThreshold = loadSelectedColorSaturationThreshold();
-        saturationThresholdInput.value = savedThreshold;
-        state.selectedColorSaturationThreshold = savedThreshold;
-        
-        saturationThresholdInput.addEventListener('input', (e) => {
-            const threshold = parseFloat(e.target.value);
-            if (!isNaN(threshold)) {
-                state.selectedColorSaturationThreshold = threshold;
-                saveSelectedColorSaturationThreshold(threshold);
-                // Update closest matches when threshold changes
-                if (updateClosestMatches) {
-                    updateClosestMatches();
-                }
-            }
-        });
     }
 }
 

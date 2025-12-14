@@ -28,6 +28,10 @@ let imageAnimationFrameId = null;
 let imageLastUpdateTime = 0;
 const imageThrottleDelay = 16; // ~60fps
 
+// Track if event listeners have been set up
+let canvasListenersSetup = false;
+let saveButtonListenerSetup = false;
+
 // Callbacks for dependencies
 let updateClosestMatches = null;
 let findClosestFromPalette = null;
@@ -93,10 +97,39 @@ export function initImagePicker(dependencies = {}) {
         addColorToPalette = dependencies.addColorToPalette;
     }
     
+    // Save color button - set up once during initialization
+    if (saveColorBtn && !saveButtonListenerSetup) {
+        saveButtonListenerSetup = true;
+        saveColorBtn.addEventListener('click', () => {
+            const currentColor = getCurrentColor();
+            if (!currentColor) return;
+            
+            if (addColorToPalette) {
+                if (addColorToPalette({ ...currentColor })) {
+                    // Color added successfully
+                } else {
+                    alert('This color is already in your palette!');
+                }
+            }
+        });
+    }
+    
+    // Set up canvas event listeners once
+    setupCanvasEventListeners();
+    
     // Image upload handler
     if (imageUpload) {
         imageUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
+            
+            // Save image to current model
+            import('../ui/palettesPanel.js').then(({ saveImageToCurrentModel }) => {
+                if (file && saveImageToCurrentModel) {
+                    saveImageToCurrentModel(file);
+                }
+            }).catch(err => {
+                console.error('Error importing saveImageToCurrentModel:', err);
+            });
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (event) => {
@@ -125,135 +158,159 @@ export function initImagePicker(dependencies = {}) {
             }
         });
     }
+}
+
+// Load image from data URL into canvas (exported for use by uploaded images)
+export function loadImageFromDataUrl(dataUrl) {
+    if (!imageCanvas || !ctx) {
+        // Re-initialize if needed
+        imageCanvas = document.getElementById('imageCanvas');
+        if (imageCanvas) {
+            ctx = imageCanvas.getContext('2d');
+            state.ctx = ctx;
+        }
+        imageSection = document.getElementById('imageSection');
+    }
+    
+    if (!imageCanvas || !ctx) return;
+    
+    const img = new Image();
+    img.onload = () => {
+        // Set canvas size to match image (max width 800px for better UX)
+        const maxWidth = 800;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+        }
+        
+        imageCanvas.width = width;
+        imageCanvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        if (imageSection) {
+            imageSection.style.display = 'block';
+        }
+    };
+    img.src = dataUrl;
+}
+
+// Set up canvas event listeners (only once)
+function setupCanvasEventListeners() {
+    if (!imageCanvas || canvasListenersSetup) return;
+    canvasListenersSetup = true;
     
     // Color picker on canvas click
-    if (imageCanvas) {
-        imageCanvas.addEventListener('click', (e) => {
+    imageCanvas.addEventListener('click', (e) => {
             const rect = imageCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            // Get pixel data
-            const pixel = ctx.getImageData(x, y, 1, 1).data;
-            const r = pixel[0];
-            const g = pixel[1];
-            const b = pixel[2];
-            
-            // Convert to hex
-            const hex = rgbToHex(r, g, b);
-            
-            // Update current color
-            setCurrentColor({ r, g, b, hex });
-            displayCurrentColor();
-        });
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
         
-        // Show color info on mouse move with magnifying glass
-        imageCanvas.addEventListener('mousemove', (e) => {
-            const now = performance.now();
-            if (now - imageLastUpdateTime < imageThrottleDelay) {
-                return;
-            }
-            imageLastUpdateTime = now;
-            
-            if (imageAnimationFrameId) {
-                cancelAnimationFrame(imageAnimationFrameId);
-            }
-            
-            imageAnimationFrameId = requestAnimationFrame(() => {
-                const rect = imageCanvas.getBoundingClientRect();
-                const scaleX = imageCanvas.width / rect.width;
-                const scaleY = imageCanvas.height / rect.height;
-                const x = Math.floor((e.clientX - rect.left) * scaleX);
-                const y = Math.floor((e.clientY - rect.top) * scaleY);
-                
-                if (x >= 0 && x < imageCanvas.width && y >= 0 && y < imageCanvas.height) {
-                    const pixel = ctx.getImageData(x, y, 1, 1).data;
-                    const r = pixel[0];
-                    const g = pixel[1];
-                    const b = pixel[2];
-                    const hex = rgbToHex(r, g, b);
-                    
-                    if (cursorInfo) {
-                        cursorInfo.textContent = `X: ${x}, Y: ${y} | ${hex}`;
-                        cursorInfo.style.display = 'block';
-                        cursorInfo.style.left = `${e.clientX - rect.left + 10}px`;
-                        cursorInfo.style.top = `${e.clientY - rect.top + 10}px`;
-                    }
-                    
-                    // Show and update magnifying glass
-                    if (imageMagnifyingGlass && imageMagnifyingCanvas && imageCanvasContainer) {
-                        const containerRect = imageCanvasContainer.getBoundingClientRect();
-                        const glassSize = 120;
-                        const glassX = e.clientX - containerRect.left - glassSize / 2;
-                        const glassY = e.clientY - containerRect.top - glassSize / 2;
-                        
-                        imageMagnifyingGlass.style.display = 'block';
-                        imageMagnifyingGlass.style.left = glassX + 'px';
-                        imageMagnifyingGlass.style.top = glassY + 'px';
-                        
-                        // Create magnified view using canvas directly
-                        const zoom = 2;
-                        const sourceSize = glassSize / zoom;
-                        const sourceX = x - sourceSize / 2;
-                        const sourceY = y - sourceSize / 2;
-                        
-                        const magCtx = imageMagnifyingCanvas.getContext('2d');
-                        
-                        // Clear and draw the magnified area
-                        magCtx.clearRect(0, 0, glassSize, glassSize);
-                        magCtx.save();
-                        magCtx.beginPath();
-                        magCtx.arc(glassSize / 2, glassSize / 2, glassSize / 2, 0, 2 * Math.PI);
-                        magCtx.clip();
-                        
-                        magCtx.drawImage(
-                            imageCanvas,
-                            sourceX, sourceY, sourceSize, sourceSize,
-                            0, 0, glassSize, glassSize
-                        );
-                        
-                        magCtx.restore();
-                    }
-                } else {
-                    // Hide magnifying glass when outside canvas
-                    if (imageMagnifyingGlass) {
-                        imageMagnifyingGlass.style.display = 'none';
-                    }
-                    if (cursorInfo) {
-                        cursorInfo.style.display = 'none';
-                    }
-                }
-            });
-        });
+        // Get pixel data
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
+        const r = pixel[0];
+        const g = pixel[1];
+        const b = pixel[2];
         
-        imageCanvas.addEventListener('mouseleave', () => {
-            if (imageAnimationFrameId) {
-                cancelAnimationFrame(imageAnimationFrameId);
-            }
-            if (imageMagnifyingGlass) {
-                imageMagnifyingGlass.style.display = 'none';
-            }
-            if (cursorInfo) {
-                cursorInfo.style.display = 'none';
-            }
-        });
-    }
+        // Convert to hex
+        const hex = rgbToHex(r, g, b);
+        
+        // Update current color
+        setCurrentColor({ r, g, b, hex });
+        displayCurrentColor();
+    });
     
-    // Save color button
-    if (saveColorBtn) {
-        saveColorBtn.addEventListener('click', () => {
-            const currentColor = getCurrentColor();
-            if (!currentColor) return;
+    // Show color info on mouse move with magnifying glass
+    imageCanvas.addEventListener('mousemove', (e) => {
+        const now = performance.now();
+        if (now - imageLastUpdateTime < imageThrottleDelay) {
+            return;
+        }
+        imageLastUpdateTime = now;
+        
+        if (imageAnimationFrameId) {
+            cancelAnimationFrame(imageAnimationFrameId);
+        }
+        
+        imageAnimationFrameId = requestAnimationFrame(() => {
+            const rect = imageCanvas.getBoundingClientRect();
+            const scaleX = imageCanvas.width / rect.width;
+            const scaleY = imageCanvas.height / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX);
+            const y = Math.floor((e.clientY - rect.top) * scaleY);
             
-            if (addColorToPalette) {
-                if (addColorToPalette({ ...currentColor })) {
-                    // Color added successfully
-                } else {
-                    alert('This color is already in your palette!');
+            if (x >= 0 && x < imageCanvas.width && y >= 0 && y < imageCanvas.height) {
+                const pixel = ctx.getImageData(x, y, 1, 1).data;
+                const r = pixel[0];
+                const g = pixel[1];
+                const b = pixel[2];
+                const hex = rgbToHex(r, g, b);
+                
+                if (cursorInfo) {
+                    cursorInfo.textContent = `X: ${x}, Y: ${y} | ${hex}`;
+                    cursorInfo.style.display = 'block';
+                    cursorInfo.style.left = `${e.clientX - rect.left + 10}px`;
+                    cursorInfo.style.top = `${e.clientY - rect.top + 10}px`;
+                }
+                
+                // Show and update magnifying glass
+                if (imageMagnifyingGlass && imageMagnifyingCanvas && imageCanvasContainer) {
+                    const containerRect = imageCanvasContainer.getBoundingClientRect();
+                    const glassSize = 120;
+                    const glassX = e.clientX - containerRect.left - glassSize / 2;
+                    const glassY = e.clientY - containerRect.top - glassSize / 2;
+                    
+                    imageMagnifyingGlass.style.display = 'block';
+                    imageMagnifyingGlass.style.left = glassX + 'px';
+                    imageMagnifyingGlass.style.top = glassY + 'px';
+                    
+                    // Create magnified view using canvas directly
+                    const zoom = 2;
+                    const sourceSize = glassSize / zoom;
+                    const sourceX = x - sourceSize / 2;
+                    const sourceY = y - sourceSize / 2;
+                    
+                    const magCtx = imageMagnifyingCanvas.getContext('2d');
+                    
+                    // Clear and draw the magnified area
+                    magCtx.clearRect(0, 0, glassSize, glassSize);
+                    magCtx.save();
+                    magCtx.beginPath();
+                    magCtx.arc(glassSize / 2, glassSize / 2, glassSize / 2, 0, 2 * Math.PI);
+                    magCtx.clip();
+                    
+                    magCtx.drawImage(
+                        imageCanvas,
+                        sourceX, sourceY, sourceSize, sourceSize,
+                        0, 0, glassSize, glassSize
+                    );
+                    
+                    magCtx.restore();
+                }
+            } else {
+                // Hide magnifying glass when outside canvas
+                if (imageMagnifyingGlass) {
+                    imageMagnifyingGlass.style.display = 'none';
+                }
+                if (cursorInfo) {
+                    cursorInfo.style.display = 'none';
                 }
             }
         });
-    }
+    });
+    
+    imageCanvas.addEventListener('mouseleave', () => {
+        if (imageAnimationFrameId) {
+            cancelAnimationFrame(imageAnimationFrameId);
+        }
+        if (imageMagnifyingGlass) {
+            imageMagnifyingGlass.style.display = 'none';
+        }
+        if (cursorInfo) {
+            cursorInfo.style.display = 'none';
+        }
+    });
 }
 
 // Display current color
@@ -286,9 +343,8 @@ export function updateClosestMatchesDisplay() {
     if (!currentColor) return;
     
     // Find closest from palette (no filters - always from user's palette)
-    // Use selectedColorSaturationThreshold for Palette Editor context
-    const palette1 = findClosestFromPalette ? findClosestFromPalette(currentColor, true) : null;
-    const palette2 = findNthClosestFromPalette ? findNthClosestFromPalette(currentColor, 2, true) : null;
+    const palette1 = findClosestFromPalette ? findClosestFromPalette(currentColor) : null;
+    const palette2 = findNthClosestFromPalette ? findNthClosestFromPalette(currentColor, 2) : null;
     
     // Find closest from my collection (apply filters)
     const collection1 = findClosestFromMyCollection ? findClosestFromMyCollection(currentColor, 'selectedColorFilters') : null;

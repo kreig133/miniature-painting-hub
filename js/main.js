@@ -21,10 +21,10 @@ import { initShopping, loadShoppingCart, addToShoppingCart } from './features/sh
 import { initPaintColors, mergePaintColorsData, loadPaintColors, getUniqueProducersAndTypes } from './features/paintColors.js';
 import { initFilters, createFilterCheckboxes, filterData, setMixingCallback } from './features/filters.js';
 import { 
-    initPlanning, 
+    initPlanning,
+    checkAndSetPlanningMode, 
     loadPlanningTable, 
     initSortOrder, 
-    initSaturationThreshold,
     findClosestFromPalette,
     findNthClosestFromPalette,
     findClosestFromMyCollection,
@@ -173,12 +173,18 @@ export function init() {
     
     // 10. Initialize planning
     initPlanning({
+        addToShoppingCart,
         saveSortOrder,
         setSortOrder,
         sortPaletteByHSV,
         savePalette,
-        loadPalette
+        loadPalette,
+        addColorToPalette
     });
+    
+    // Make planning functions available globally
+    window.checkAndSetPlanningMode = checkAndSetPlanningMode;
+    window.loadPlanningTable = loadPlanningTable;
     
     // 11. Initialize color wheel
     initColorWheel({
@@ -195,7 +201,7 @@ export function init() {
     // 13. Initialize modals
     initAddColorModal(addToMyCollection);
     
-    // 14. Initialize sort order and saturation threshold (from planning)
+    // 14. Initialize sort order (from planning)
     initSortOrder({
         saveSortOrder,
         setSortOrder,
@@ -203,7 +209,6 @@ export function init() {
         savePalette,
         loadPalette
     });
-    initSaturationThreshold();
     
     // 15. Initialize selected color filter toggle
     initSelectedColorFilterToggle();
@@ -217,7 +222,8 @@ export function init() {
     // 18. Load initial data
     loadPaintColors();
     loadMyCollection();
-    loadPlanningTable();
+    // Don't call loadPlanningTable() here - it will be called by checkAndSetPlanningMode()
+    // when Planning tab is activated, or during initPlanning() if Planning is already active
     loadMixingTable();
     loadMixingTable();
     

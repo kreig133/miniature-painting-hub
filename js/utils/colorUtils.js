@@ -70,6 +70,30 @@ export function hsvDistance(hsv1, hsv2) {
     return distance;
 }
 
+// Calculate color distance using CIEDE2000 algorithm
+// Parameters: r1, g1, b1 (first color RGB), r2, g2, b2 (second color RGB)
+// Returns: delta_e (color difference as float)
+export function ciede2000Distance(r1, g1, b1, r2, g2, b2) {
+    // Check if ciede_2000 function is available
+    if (typeof ciede_2000 === 'undefined') {
+        console.warn('CIEDE2000 library not loaded, falling back to HSV distance');
+        // Fallback to HSV distance if CIEDE2000 is not available
+        const hsv1 = rgbToHSV(r1, g1, b1);
+        const hsv2 = rgbToHSV(r2, g2, b2);
+        return hsvDistance(hsv1, hsv2);
+    }
+    
+    try {
+        return ciede_2000(r1, g1, b1, r2, g2, b2);
+    } catch (error) {
+        console.error('Error calculating CIEDE2000 distance:', error);
+        // Fallback to HSV distance on error
+        const hsv1 = rgbToHSV(r1, g1, b1);
+        const hsv2 = rgbToHSV(r2, g2, b2);
+        return hsvDistance(hsv1, hsv2);
+    }
+}
+
 // Convert HSV to RGB
 export function hsvToRGB(h, s, v) {
     h = h % 360;

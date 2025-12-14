@@ -37,23 +37,6 @@ export function loadSortOrder() {
     return localStorage.getItem('colorSortOrder') || 'hsv';
 }
 
-export function saveSaturationThreshold(threshold) {
-    localStorage.setItem('saturationThreshold', threshold.toString());
-}
-
-export function loadSaturationThreshold() {
-    const threshold = parseFloat(localStorage.getItem('saturationThreshold'));
-    return isNaN(threshold) ? 90 : threshold;
-}
-
-export function saveSelectedColorSaturationThreshold(threshold) {
-    localStorage.setItem('selectedColorSaturationThreshold', threshold.toString());
-}
-
-export function loadSelectedColorSaturationThreshold() {
-    const threshold = parseFloat(localStorage.getItem('selectedColorSaturationThreshold'));
-    return isNaN(threshold) ? 90 : threshold;
-}
 
 export function savePaletteValueMiddle(value) {
     localStorage.setItem('paletteValueMiddle', value.toString());
@@ -135,5 +118,44 @@ export function saveUseShoppingColors(useShopping) {
 
 export function loadUseShoppingColors() {
     return localStorage.getItem('useShoppingColors') === 'true';
+}
+
+// Planning mappings: { paletteId: { colorHex: { candidate1: {...}, candidate2: {...}, fromAll: {...} } } }
+export function savePlanningMappings(mappings) {
+    localStorage.setItem('planningMappings', JSON.stringify(mappings));
+}
+
+export function loadPlanningMappings() {
+    const data = localStorage.getItem('planningMappings');
+    return data ? JSON.parse(data) : {};
+}
+
+// Model images storage (stored per palette)
+export function saveModelImages(paletteId, images) {
+    const key = `modelImages_${paletteId}`;
+    localStorage.setItem(key, JSON.stringify(images));
+}
+
+export function loadModelImages(paletteId) {
+    const key = `modelImages_${paletteId}`;
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : [];
+}
+
+export function saveModelImageId(paletteId, imageId) {
+    localStorage.setItem(`modelImageId_${paletteId}`, imageId || '');
+}
+
+export function loadModelImageId(paletteId) {
+    return localStorage.getItem(`modelImageId_${paletteId}`) || null;
+}
+
+export function saveModelsPanelWidth(width) {
+    localStorage.setItem('modelsPanelWidth', width.toString());
+}
+
+export function loadModelsPanelWidth() {
+    const width = localStorage.getItem('modelsPanelWidth');
+    return width ? parseInt(width, 10) : 300;
 }
 

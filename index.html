@@ -3,28 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Color Palette Picker</title>
+    <title>Model Painting Ultimate Tool</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Hamburger Menu Button - Always visible -->
-    <button class="hamburger-menu-btn" id="hamburgerMenuBtn" aria-label="Toggle palettes menu">
+    <button class="hamburger-menu-btn" id="hamburgerMenuBtn" aria-label="Toggle models menu">
         <span></span>
         <span></span>
         <span></span>
     </button>
     
-    <!-- Palettes Panel - Outside container, fixed to left -->
-    <div class="palettes-panel" id="palettesPanel">
-        <div class="palettes-panel-header" id="palettesPanelToggle">
-            <h3>Palettes</h3>
+    <!-- Models Panel - Outside container, fixed to left -->
+    <div class="models-panel" id="palettesPanel">
+        <div class="models-panel-resize-handle" id="modelsPanelResizeHandle"></div>
+        <div class="models-panel-header" id="palettesPanelToggle">
+            <h3>Model Painting</h3>
             <span class="panel-toggle-icon">▼</span>
         </div>
-        <div class="palettes-panel-content" id="palettesPanelContent">
-            <div class="palettes-list" id="palettesList">
-                <!-- Will be populated by JavaScript -->
+        <div class="models-panel-content" id="palettesPanelContent">
+            <!-- Tabs for Current/All models -->
+            <div class="models-panel-tabs">
+                <button class="models-tab-btn active" data-models-tab="current">Current Model</button>
+                <button class="models-tab-btn" data-models-tab="all">All models</button>
             </div>
-            <button class="add-palette-btn" id="addPaletteBtn">+ Add New Palette</button>
+            <!-- Current models list -->
+            <div class="models-list-tab-content active" id="currentModelsList">
+                <div class="models-list" id="currentPalettesList">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                <!-- Model Image Container -->
+                <div class="model-image-container" id="modelImageContainer">
+                    <h4 class="model-image-title">Model Image</h4>
+                    <div class="model-image-display" id="modelImageDisplay">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                <!-- Uploaded Images Container -->
+                <div class="uploaded-images-container" id="uploadedImagesContainer">
+                    <h4 class="uploaded-images-title">Uploaded Images</h4>
+                    <div class="uploaded-images-grid" id="uploadedImagesGrid">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            <!-- All models list -->
+            <div class="models-list-tab-content" id="allModelsList">
+                <div class="models-list" id="modelsList">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                <button class="add-model-btn" id="addPaletteBtn">+ Add New Palette</button>
+            </div>
         </div>
     </div>
     
@@ -42,6 +71,7 @@
             <div class="tabs sub-tabs">
                 <button class="tab-btn active" data-tab="picker" data-parent="painting">Palette Editor</button>
                 <button class="tab-btn" data-tab="planning" data-parent="painting">Planning</button>
+                <button class="tab-btn" data-tab="references" data-parent="painting">References</button>
                 <button class="tab-btn" data-tab="mixing" data-parent="painting">Mixing Colour</button>
             </div>
             
@@ -149,9 +179,9 @@
                 <div class="planning-section">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="margin: 0;" id="planningHeader">Planning</h2>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <label for="saturationThreshold" style="font-weight: 500; color: #667eea;">Saturation Threshold (%):</label>
-                            <input type="number" id="saturationThreshold" min="0" max="100" value="90" style="width: 80px; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95rem; outline: none;" />
+                        <div style="display: flex; gap: 10px;">
+                            <button id="planningAddBtn" type="button" class="planning-add-btn">Add</button>
+                            <button id="planningModeToggleBtn" type="button" class="planning-mode-btn" style="display: none;">Edit</button>
                         </div>
                     </div>
                     <div class="filter-container" id="planningFilters">
@@ -187,11 +217,45 @@
                 </div>
             </div>
             
+            <!-- References Sub-tab -->
+            <div class="sub-tab-content" id="referencesTab">
+                <div class="references-section">
+                    <div class="references-header">
+                        <h2>References</h2>
+                        <div class="add-reference-dropdown">
+                            <button class="add-reference-btn" id="addReferenceBtn" type="button">
+                                Add Reference
+                                <span class="dropdown-arrow">▼</span>
+                            </button>
+                            <div class="add-reference-dropdown-menu" id="addReferenceDropdown">
+                                <button class="dropdown-item" id="addReferenceFileBtn" type="button">Add File</button>
+                                <button class="dropdown-item" id="addReferenceLinkBtn" type="button">Add Link</button>
+                            </div>
+                            <input type="file" id="referenceFileUpload" accept="image/*" style="display: none;" multiple>
+                        </div>
+                    </div>
+                    <div class="references-gallery" id="referencesGallery">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Image View Modal -->
+            <div id="imageViewModal" class="image-view-modal">
+                <button class="image-view-close" id="imageViewClose" type="button">&times;</button>
+                <button class="image-view-nav image-view-prev" id="imageViewPrev" type="button">‹</button>
+                <button class="image-view-nav image-view-next" id="imageViewNext" type="button">›</button>
+                <div class="image-view-container">
+                    <img id="imageViewImg" src="" alt="Reference image">
+                </div>
+            </div>
+            
             <!-- Mixing Colour Sub-tab -->
             <div class="sub-tab-content" id="mixingTab">
                 <div class="mixing-section">
                     <div class="palette-header">
                         <h2>Mixing Colour</h2>
+                        <button id="customMixBtn" type="button" class="custom-mix-btn">Custom Mix</button>
                     </div>
                     <div class="filter-container" id="mixingFilters">
                         <!-- Will be populated by JavaScript -->
@@ -209,6 +273,99 @@
                                 <!-- Will be populated by JavaScript -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Custom Mix Modal -->
+            <div id="customMixModal" class="custom-mix-modal">
+                <div class="custom-mix-modal-content">
+                    <div class="custom-mix-header">
+                        <h2>Custom Mix</h2>
+                        <div class="custom-mix-header-buttons">
+                            <button class="use-mix-btn" id="useMixBtn" type="button" style="display: none;">Use</button>
+                            <button id="closeCustomMixModal" type="button" class="close-custom-mix-btn">&times;</button>
+                        </div>
+                    </div>
+                    <div class="custom-mix-body">
+                        <!-- Top section: Result -->
+                        <div class="custom-mix-result-section">
+                            <div class="custom-mix-palette-color-box" id="customMixPaletteColorBox" style="display: none;"></div>
+                            <div class="custom-mix-result-box" id="customMixResultBox"></div>
+                        </div>
+                        <!-- Bottom section: 4 color squares -->
+                        <div class="custom-mix-colors-section">
+                            <div class="custom-mix-color-square" data-color-index="0">
+                                <button class="add-color-btn" type="button">Add color</button>
+                                <div class="color-display" style="display: none;">
+                                    <button class="remove-color-btn" type="button">&times;</button>
+                                    <div class="color-display-box"></div>
+                                    <div class="color-display-name"></div>
+                                    <input type="range" class="color-weight-slider" min="1" max="10" value="1" step="1">
+                                    <span class="slider-value">1</span>
+                                </div>
+                            </div>
+                            <div class="custom-mix-color-square" data-color-index="1">
+                                <button class="add-color-btn" type="button">Add color</button>
+                                <div class="color-display" style="display: none;">
+                                    <button class="remove-color-btn" type="button">&times;</button>
+                                    <div class="color-display-box"></div>
+                                    <div class="color-display-name"></div>
+                                    <input type="range" class="color-weight-slider" min="1" max="10" value="1" step="1">
+                                    <span class="slider-value">1</span>
+                                </div>
+                            </div>
+                            <div class="custom-mix-color-square" data-color-index="2">
+                                <button class="add-color-btn" type="button">Add color</button>
+                                <div class="color-display" style="display: none;">
+                                    <button class="remove-color-btn" type="button">&times;</button>
+                                    <div class="color-display-box"></div>
+                                    <div class="color-display-name"></div>
+                                    <input type="range" class="color-weight-slider" min="1" max="10" value="1" step="1">
+                                    <span class="slider-value">1</span>
+                                </div>
+                            </div>
+                            <div class="custom-mix-color-square" data-color-index="3">
+                                <button class="add-color-btn" type="button">Add color</button>
+                                <div class="color-display" style="display: none;">
+                                    <button class="remove-color-btn" type="button">&times;</button>
+                                    <div class="color-display-box"></div>
+                                    <div class="color-display-name"></div>
+                                    <input type="range" class="color-weight-slider" min="1" max="10" value="1" step="1">
+                                    <span class="slider-value">1</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Color Selection Modal (for Custom Mix) -->
+            <div id="customMixColorSelectModal" class="custom-mix-color-select-modal">
+                <div class="custom-mix-color-select-content">
+                    <div class="custom-mix-color-select-header">
+                        <h3>Select Color</h3>
+                        <button id="closeColorSelectModal" type="button" class="close-color-select-btn">&times;</button>
+                    </div>
+                    <div class="custom-mix-color-select-body">
+                        <div class="filter-container" id="customMixColorSelectFilters">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                        <div class="color-select-table-container">
+                            <table id="customMixColorSelectTable">
+                                <thead>
+                                    <tr>
+                                        <th>Colour</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Producer</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -494,7 +651,34 @@
     <script src="data/ak_interactive_3gen_data.js"></script>
     <script src="data/ak_interactive_quick_gen_data.js"></script>
     
+    <!-- CIEDE2000 Color Matching Library -->
+    <script src="https://cdn.jsdelivr.net/gh/michel-leonard/ciede2000-color-matching@latest/docs/assets/scripts/ciede-2000.min.js"></script>
+    
     <!-- Main application (ES6 module) -->
     <script type="module" src="js/main.js"></script>
+
+    <!-- Planning Add Color Modal -->
+    <div class="planning-add-color-modal" id="planningAddColorModal">
+        <div class="planning-add-color-modal-content">
+            <div class="planning-add-color-header">
+                <h2>Add Color to Palette</h2>
+                <button class="close-planning-add-color-modal" id="closePlanningAddColorModal">&times;</button>
+            </div>
+            <div class="planning-add-color-body">
+                <div class="planning-color-wheel-wrapper">
+                    <canvas id="planningAddColorWheelCanvas"></canvas>
+                </div>
+                <div class="planning-value-slider-container">
+                    <label for="planningValueSlider">Value:</label>
+                    <input type="range" id="planningValueSlider" min="0" max="100" value="50" class="value-slider">
+                    <span id="planningValueDisplay">50</span>
+                </div>
+                <div class="planning-color-preview-container">
+                    <div class="planning-color-preview" id="planningColorPreview"></div>
+                </div>
+                <button type="button" class="planning-use-color-btn" id="planningUseColorBtn">Use</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
