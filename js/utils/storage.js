@@ -12,21 +12,47 @@ export function loadPalette() {
 }
 
 export function saveMyCollection(collection) {
-    localStorage.setItem('myCollection', JSON.stringify(collection));
+    const collectionData = {
+        version: 1,
+        data: collection
+    };
+    localStorage.setItem('myCollection', JSON.stringify(collectionData));
 }
 
 export function loadMyCollection() {
     const data = localStorage.getItem('myCollection');
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    
+    const parsed = JSON.parse(data);
+    // Backward compatibility: if it's an array (old format), migrate it
+    if (Array.isArray(parsed)) {
+        saveMyCollection(parsed);
+        return parsed;
+    }
+    // New format: return the data array
+    return parsed.data || [];
 }
 
 export function saveShoppingCart(cart) {
-    localStorage.setItem('shoppingCart', JSON.stringify(cart));
+    const cartData = {
+        version: 1,
+        data: cart
+    };
+    localStorage.setItem('shoppingCart', JSON.stringify(cartData));
 }
 
 export function loadShoppingCart() {
     const data = localStorage.getItem('shoppingCart');
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    
+    const parsed = JSON.parse(data);
+    // Backward compatibility: if it's an array (old format), migrate it
+    if (Array.isArray(parsed)) {
+        saveShoppingCart(parsed);
+        return parsed;
+    }
+    // New format: return the data array
+    return parsed.data || [];
 }
 
 export function saveSortOrder(order) {
