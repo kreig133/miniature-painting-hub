@@ -2,6 +2,8 @@
  * Tab switching UI component
  */
 
+import { loadReferencesGallery, initReferences } from '../features/references.js';
+
 export function initTabs() {
     // Handle main tabs (Painting, Collection)
     const mainTabButtons = document.querySelectorAll('.main-tabs .tab-btn');
@@ -104,12 +106,8 @@ export function initTabs() {
                     
                     // If References tab is activated, load the gallery
                     if (targetTab === 'references') {
-                        import('../features/references.js').then(({ loadReferencesGallery, initReferences }) => {
-                            initReferences(); // Initialize modal if not already done
-                            loadReferencesGallery();
-                        }).catch(err => {
-                            console.error('Error loading references gallery:', err);
-                        });
+                        initReferences(); // Initialize modal if not already done
+                        loadReferencesGallery();
                     }
                 }
             }
