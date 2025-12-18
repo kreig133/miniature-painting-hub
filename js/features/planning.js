@@ -155,7 +155,7 @@ export function findNthClosestColor(targetColor, n, source = 'merged', filterCon
     return matches.length >= n ? matches[n - 1].item : null;
 }
 
-// Find closest from Paint Colours (wrapper for findClosestColor)
+// Find closest from Paint Colors (wrapper for findClosestColor)
 export function findClosestFromPaintColors(targetColor, filterContainerId = null) {
     return findClosestColor(targetColor, 'merged', filterContainerId);
 }
@@ -440,6 +440,14 @@ function saveMapping(colorHex, type, paint) {
         mappings[paletteId][colorHex] = {};
     }
     
+    // Only one assignment is allowed per palette color
+    // Clear all other assignments (candidate1, candidate2, fromAll, mixingScheme)
+    delete mappings[paletteId][colorHex].candidate1;
+    delete mappings[paletteId][colorHex].candidate2;
+    delete mappings[paletteId][colorHex].fromAll;
+    delete mappings[paletteId][colorHex].mixingScheme;
+    
+    // Set the new assignment
     mappings[paletteId][colorHex][type] = paint;
     setPlanningMappings(mappings);
     savePlanningMappings(mappings);
@@ -524,7 +532,7 @@ export function loadPlanningTable(preserveMode = false) {
             thead.innerHTML = `
                 <th>
                     <div class="table-header-with-controls">
-                        <span>Colour</span>
+                        <span>Color</span>
                         <select id="sortOrderSelectPlanning" class="sort-order-select">
                             <option value="hsv">Hue-Saturation-Value</option>
                             <option value="hvs">Hue-Value-Saturation</option>
@@ -546,7 +554,7 @@ export function loadPlanningTable(preserveMode = false) {
             thead.innerHTML = `
                 <th>
                     <div class="table-header-with-controls">
-                        <span>Colour</span>
+                        <span>Color</span>
                         <select id="sortOrderSelectPlanning" class="sort-order-select">
                             <option value="hsv">Hue-Saturation-Value</option>
                             <option value="hvs">Hue-Value-Saturation</option>
@@ -609,11 +617,11 @@ export function loadPlanningTable(preserveMode = false) {
         }
 
         if (currentMode === 'view') {
-            // View mode: show Colour and Mapping columns
+            // View mode: show Color and Mapping columns
             palette.forEach(color => {
                 const row = document.createElement('tr');
                 
-                // Colour column
+                // Color column
                 const colorCell = document.createElement('td');
                 const colorBox = document.createElement('div');
                 colorBox.className = 'color-box';
@@ -636,7 +644,7 @@ export function loadPlanningTable(preserveMode = false) {
                 const row = document.createElement('tr');
                 const mapping = getMapping(color.hex);
                 
-                // Colour column
+                // Color column
                 const colorCell = document.createElement('td');
                 const colorBox = document.createElement('div');
                 colorBox.className = 'color-box';
@@ -1462,6 +1470,11 @@ function initPlanningAddColorModal() {
     
     // Open modal
     addBtn.addEventListener('click', () => {
+        // Grey out other wheels
+        if (window.greyOutOtherWheels) {
+            window.greyOutOtherWheels();
+        }
+        
         // Reset to default values
         selectedH = 0;
         selectedS = 0;
@@ -1479,12 +1492,18 @@ function initPlanningAddColorModal() {
     // Close modal
     closeBtn.addEventListener('click', () => {
         modal.classList.remove('active');
+        if (window.ungreyOtherWheels) {
+            window.ungreyOtherWheels();
+        }
     });
     
     // Close modal on background click
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.remove('active');
+            if (window.ungreyOtherWheels) {
+                window.ungreyOtherWheels();
+            }
         }
     });
     
@@ -1492,6 +1511,9 @@ function initPlanningAddColorModal() {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
             modal.classList.remove('active');
+            if (window.ungreyOtherWheels) {
+                window.ungreyOtherWheels();
+            }
         }
     });
     
@@ -1499,6 +1521,11 @@ function initPlanningAddColorModal() {
     useBtn.addEventListener('click', () => {
         const rgb = hsvToRGB(selectedH, selectedS, selectedV);
         const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+        
+        // Ungrey other wheels
+        if (window.ungreyOtherWheels) {
+            window.ungreyOtherWheels();
+        }
         
         const color = {
             r: rgb.r,

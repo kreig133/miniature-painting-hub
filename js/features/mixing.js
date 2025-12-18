@@ -1,11 +1,11 @@
 /**
- * Mixing Colour feature - generates and displays color pairs from My Collection
+ * Mixing Color feature - generates and displays color pairs from My Collection
  */
 
 import { getMyCollection, getMergedPaintColors } from '../core/state.js';
 import { getEffectiveMyCollection } from './myCollection.js';
 import { filterData, createFilterCheckboxes } from './filters.js';
-import { addGradientClickToColorBox, hexToRgb, rgbToHex } from '../utils/colorUtils.js';
+import { addGradientClickToColorBox, hexToRgb, rgbToHex, rgbToHSV } from '../utils/colorUtils.js';
 import { addHoverTooltipToColorBox } from '../utils/domUtils.js';
 import mixbox from 'https://scrtwpns.com/mixbox.esm.js';
 
@@ -353,6 +353,11 @@ export function openCustomMixModalWithColors(paletteColor, candidate1, candidate
         updateResultColor();
     }
     
+    // Grey out other wheels
+    if (window.greyOutOtherWheels) {
+        window.greyOutOtherWheels();
+    }
+    
     // Open modal
     customMixModal.classList.add('active');
 }
@@ -404,6 +409,11 @@ export function openCustomMixModalWithScheme(paletteColor, mixingScheme) {
     }
     if (updateResultColor) {
         updateResultColor();
+    }
+    
+    // Grey out other wheels
+    if (window.greyOutOtherWheels) {
+        window.greyOutOtherWheels();
     }
     
     // Open modal
@@ -489,6 +499,9 @@ function initCustomMixModal() {
                     // Close modal
                     if (customMixModal) {
                         customMixModal.classList.remove('active');
+                if (window.ungreyOtherWheels) {
+                    window.ungreyOtherWheels();
+                }
                     }
                     
                     // Reload planning table to show the new mixing scheme
@@ -510,6 +523,9 @@ function initCustomMixModal() {
         closeCustomMixModal.addEventListener('click', () => {
             if (customMixModal) {
                 customMixModal.classList.remove('active');
+                if (window.ungreyOtherWheels) {
+                    window.ungreyOtherWheels();
+                }
             }
         });
     }
@@ -519,6 +535,9 @@ function initCustomMixModal() {
         customMixModal.addEventListener('click', (e) => {
             if (e.target === customMixModal) {
                 customMixModal.classList.remove('active');
+                if (window.ungreyOtherWheels) {
+                    window.ungreyOtherWheels();
+                }
             }
         });
     }
@@ -536,6 +555,8 @@ function initCustomMixModal() {
         closeColorSelectModal.addEventListener('click', () => {
             if (colorSelectModal) {
                 colorSelectModal.classList.remove('active');
+                hideColorSelectWheel();
+                ungreyOtherWheels();
             }
         });
     }
@@ -545,9 +566,20 @@ function initCustomMixModal() {
         colorSelectModal.addEventListener('click', (e) => {
             if (e.target === colorSelectModal) {
                 colorSelectModal.classList.remove('active');
+                hideColorSelectWheel();
+                ungreyOtherWheels();
             }
         });
     }
+    
+    // Also close wheel on ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && colorSelectModal && colorSelectModal.classList.contains('active')) {
+            colorSelectModal.classList.remove('active');
+            hideColorSelectWheel();
+            ungreyOtherWheels();
+        }
+    });
     
     // Handle slider changes
     colorWeightSliders.forEach((slider, index) => {
@@ -733,7 +765,12 @@ function initCustomMixModal() {
     
     // Open color selection modal
     function openColorSelectModal() {
-        if (!colorSelectModal) return;
+        if (!colorSelectModal) {
+            return;
+        }
+        
+        // Grey out other wheels
+        greyOutOtherWheels();
         
         // Create filters
         const filterContainer = document.getElementById('customMixColorSelectFilters');
@@ -743,6 +780,9 @@ function initCustomMixModal() {
         
         // Load colors
         loadColorSelectTable();
+        
+        // Show floating color wheel on the right
+        showColorSelectWheel();
         
         colorSelectModal.classList.add('active');
     }
@@ -779,7 +819,7 @@ function initCustomMixModal() {
             const row = document.createElement('tr');
             row.className = 'color-select-row';
             
-            // Colour cell
+            // Color cell
             const colorCell = document.createElement('td');
             const colorBox = document.createElement('div');
             colorBox.className = 'color-box';
@@ -841,8 +881,80 @@ function initCustomMixModal() {
         });
     }
     
+    // Show floating color wheel for color select
+    function showColorSelectWheel() {
+        const wheel = document.getElementById('floatingColorSelectWheel');
+        if (!wheel) {
+            console.error('floatingColorSelectWheel not found');
+            return;
+        }
+        
+        // Position on the right side of the screen and ensure it's on top
+        wheel.style.display = 'block';
+        wheel.style.position = 'fixed';
+        wheel.style.top = '100px';
+        wheel.style.right = '20px';
+        wheel.style.left = 'auto';
+        wheel.style.transform = 'none'; // Reset any previous transforms
+        wheel.style.zIndex = '10002'; // Above modals (10000) and other wheels (9000)
+        
+        // Draw colors on the wheel if the function is available
+        if (window.drawColorSelectWheelPoints) {
+            window.drawColorSelectWheelPoints();
+        } else {
+            console.warn('drawColorSelectWheelPoints not available');
+        }
+    }
+    
+    // Hide floating color wheel
+    function hideColorSelectWheel() {
+        const wheel = document.getElementById('floatingColorSelectWheel');
+        if (wheel) {
+            wheel.style.display = 'none';
+        }
+    }
+    
+    // Grey out other floating wheels (expose globally)
+    window.greyOutOtherWheels = function() {
+        const wheels = [
+            'floatingColorWheel',
+            'floatingCollectionWheel',
+            'floatingPaintColorsWheel'
+        ];
+        
+        wheels.forEach(wheelId => {
+            const wheel = document.getElementById(wheelId);
+            if (wheel) {
+                wheel.style.opacity = '0.3';
+                wheel.style.pointerEvents = 'none';
+            }
+        });
+    };
+    
+    // Restore other floating wheels (expose globally)
+    window.ungreyOtherWheels = function() {
+        const wheels = [
+            'floatingColorWheel',
+            'floatingCollectionWheel',
+            'floatingPaintColorsWheel'
+        ];
+        
+        wheels.forEach(wheelId => {
+            const wheel = document.getElementById(wheelId);
+            if (wheel) {
+                wheel.style.opacity = '1';
+                wheel.style.pointerEvents = 'auto';
+            }
+        });
+    };
+    
     // Expose update function for filter changes
-    window.updateCustomMixColorSelectTable = loadColorSelectTable;
+    window.updateCustomMixColorSelectTable = () => {
+        loadColorSelectTable();
+        if (window.drawColorSelectWheelPoints) {
+            window.drawColorSelectWheelPoints();
+        }
+    };
 }
 
 // Initialize mixing feature

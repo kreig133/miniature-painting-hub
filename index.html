@@ -72,7 +72,7 @@
                 <button class="tab-btn active" data-tab="picker" data-parent="painting">Palette Editor</button>
                 <button class="tab-btn" data-tab="planning" data-parent="painting">Planning</button>
                 <button class="tab-btn" data-tab="references" data-parent="painting">References</button>
-                <button class="tab-btn" data-tab="mixing" data-parent="painting">Mixing Colour</button>
+                <button class="tab-btn" data-tab="mixing" data-parent="painting">Mixing Color</button>
             </div>
             
             <!-- Palette Editor Sub-tab -->
@@ -193,7 +193,7 @@
                                 <tr>
                                     <th>
                                         <div class="table-header-with-controls">
-                                            <span>Colour</span>
+                                            <span>Color</span>
                                             <select id="sortOrderSelectPlanning" class="sort-order-select">
                                                 <option value="hsv">Hue-Saturation-Value</option>
                                                 <option value="hvs">Hue-Value-Saturation</option>
@@ -250,11 +250,11 @@
                 </div>
             </div>
             
-            <!-- Mixing Colour Sub-tab -->
+            <!-- Mixing Color Sub-tab -->
             <div class="sub-tab-content" id="mixingTab">
                 <div class="mixing-section">
                     <div class="palette-header">
-                        <h2>Mixing Colour</h2>
+                        <h2>Mixing Color</h2>
                         <button id="customMixBtn" type="button" class="custom-mix-btn">Custom Mix</button>
                     </div>
                     <div class="filter-container" id="mixingFilters">
@@ -264,8 +264,8 @@
                         <table id="mixingTable">
                             <thead>
                                 <tr>
-                                    <th>Colour 1</th>
-                                    <th>Colour 2</th>
+                                    <th>Color 1</th>
+                                    <th>Color 2</th>
                                     <th>Result</th>
                                 </tr>
                             </thead>
@@ -355,7 +355,7 @@
                             <table id="customMixColorSelectTable">
                                 <thead>
                                     <tr>
-                                        <th>Colour</th>
+                                        <th>Color</th>
                                         <th>Name</th>
                                         <th>Type</th>
                                         <th>Producer</th>
@@ -377,7 +377,7 @@
             <div class="tabs sub-tabs">
                 <button class="tab-btn active" data-tab="mycollection" data-parent="collection">My Collection</button>
                 <button class="tab-btn" data-tab="shopping" data-parent="collection">Shopping</button>
-                <button class="tab-btn" data-tab="paintcolors" data-parent="collection">Paint Colours</button>
+                <button class="tab-btn" data-tab="paintcolors" data-parent="collection">Paint Colors</button>
             </div>
             
             <!-- My Collection Sub-tab -->
@@ -388,7 +388,7 @@
                         <div class="palette-header-actions">
                             <label class="checkbox-label" title="Include Shopping cart colors">
                                 <input type="checkbox" id="useShoppingColorsCheckbox">
-                                <span>Use colours from shopping</span>
+                                <span>Use colors from shopping list</span>
                             </label>
                             <button class="icon-btn" id="saveCollectionBtn" title="Save Collection as JSON">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -418,7 +418,7 @@
                         <table id="myCollectionTable">
                             <thead>
                                 <tr>
-                                    <th>Colour</th>
+                                    <th>Color</th>
                                     <th>Name</th>
                                     <th>Producer</th>
                                     <th></th>
@@ -462,7 +462,7 @@
                         <table id="shoppingTable">
                             <thead>
                                 <tr>
-                                    <th>Colour</th>
+                                    <th>Color</th>
                                     <th>Name</th>
                                     <th>Producer</th>
                                     <th></th>
@@ -481,7 +481,7 @@
             <div class="sub-tab-content" id="paintcolorsTab">
                 <div class="products-section">
                     <div class="palette-header">
-                        <h2 id="paintColorsHeader">Paint Colours</h2>
+                        <h2 id="paintColorsHeader">Paint Colors</h2>
                         <div class="palette-controls">
                             <button class="show-wheel-btn" id="showPaintColorsWheelBtn">Show Wheel</button>
                         </div>
@@ -493,7 +493,7 @@
                         <table id="paintColorsTable">
                             <thead>
                                 <tr>
-                                    <th>Colour</th>
+                                    <th>Color</th>
                                     <th>Name</th>
                                     <th></th>
                                 </tr>
@@ -557,10 +557,38 @@
             </div>
         </div>
 
+        <!-- Floating Color Select Wheel -->
+        <div class="floating-color-wheel" id="floatingColorSelectWheel" style="display: none;">
+            <div class="floating-wheel-header">
+                <span>Color Select Wheel</span>
+                <button class="close-wheel-btn" id="closeColorSelectWheelBtn">×</button>
+            </div>
+            <div class="color-wheel-container">
+                <div class="color-wheel-wrapper">
+                    <canvas id="colorSelectWheelCanvas"></canvas>
+                    <div class="magnifying-glass" id="colorSelectMagnifyingGlass">
+                        <canvas id="colorSelectMagnifyingGlassCanvas"></canvas>
+                    </div>
+                </div>
+                <div class="wheel-controls">
+                    <div class="slider-control">
+                        <label for="colorSelectValueSlider">Value:</label>
+                        <input type="range" id="colorSelectValueSlider" min="0" max="100" value="50" class="value-slider">
+                        <span id="colorSelectValueDisplay">50</span>
+                    </div>
+                    <div class="slider-control">
+                        <label for="colorSelectRangeSlider">Range:</label>
+                        <input type="range" id="colorSelectRangeSlider" min="0" max="100" value="100" class="range-slider">
+                        <span id="colorSelectRangeDisplay">100</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Floating Color Wheel -->
         <div class="floating-color-wheel" id="floatingColorWheel">
             <div class="floating-wheel-header">
-                <span>Palette Colour Wheel</span>
+                <span>Palette Color Wheel</span>
                 <button class="close-wheel-btn" id="closeWheelBtn">×</button>
             </div>
             <div class="color-wheel-container">
@@ -588,7 +616,7 @@
         <!-- Floating Collection Color Wheel -->
         <div class="floating-color-wheel" id="floatingCollectionWheel">
             <div class="floating-wheel-header">
-                <span>Collection Colour Wheel</span>
+                <span>My Collection Color Wheel</span>
                 <button class="close-wheel-btn" id="closeCollectionWheelBtn">×</button>
             </div>
             <div class="color-wheel-container">
@@ -616,7 +644,7 @@
         <!-- Floating Paint Colors Color Wheel -->
         <div class="floating-color-wheel" id="floatingPaintColorsWheel">
             <div class="floating-wheel-header">
-                <span>Paint Colours Wheel</span>
+                <span>Paint Colors Wheel</span>
                 <button class="close-wheel-btn" id="closePaintColorsWheelBtn">×</button>
             </div>
             <div class="color-wheel-container">

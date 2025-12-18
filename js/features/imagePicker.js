@@ -422,7 +422,7 @@ export function updateClosestMatchesDisplay() {
     // Update Collection 2
     updateMatchColorBox('collection2Color', collection2, true);
     
-    // Update "From All" (closest from Paint Colours)
+    // Update "From All" (closest from Paint Colors)
     const fromAll = findClosestFromPaintColors ? findClosestFromPaintColors(currentColor, 'selectedColorFilters') : null;
     updateMatchColorBox('fromAllColor', fromAll, true);
 }

@@ -169,7 +169,7 @@ export function loadPaintColors() {
         const row = document.createElement('tr');
         row.className = 'collection-row';
         
-        // Colour column
+        // Color column
         const colorCell = document.createElement('td');
         const colorBox = document.createElement('div');
         colorBox.className = 'color-box';

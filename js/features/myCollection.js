@@ -147,7 +147,7 @@ export function loadMyCollection() {
             origItem.producer === item.producer
         );
         
-        // Colour column
+        // Color column
         const colorCell = document.createElement('td');
         const colorBox = document.createElement('div');
         colorBox.className = 'color-box';

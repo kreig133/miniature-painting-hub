@@ -2543,7 +2543,7 @@ header p {
     background: white;
     border-radius: 15px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    z-index: 10000;
+    z-index: 9000;
     cursor: move;
     min-width: 300px;
     user-select: none;
@@ -2579,7 +2579,7 @@ header p {
     align-items: center;
     justify-content: center;
     transition: background 0.2s;
-    z-index: 10001;
+    z-index: 1;
     position: relative;
     pointer-events: auto;
 }

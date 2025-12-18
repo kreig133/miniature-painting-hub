@@ -40,6 +40,7 @@ import {
     initFloatingWheel,
     initCollectionFloatingWheel,
     initPaintColorsFloatingWheel,
+    initColorSelectFloatingWheel,
     initCollectionWheel,
     initPaintColorsWheel,
     initColorWheelSliders,
@@ -232,6 +233,7 @@ export function init() {
         initFloatingWheel();
         initCollectionFloatingWheel();
         initPaintColorsFloatingWheel();
+        initColorSelectFloatingWheel();
         initCollectionWheel();
         initPaintColorsWheel();
         initColorWheelSliders();
