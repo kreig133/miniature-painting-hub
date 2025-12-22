@@ -87,7 +87,7 @@ export function initState() {
         state.palettes = {
             [defaultId]: {
                 id: defaultId,
-                name: 'Palette 1',
+                name: 'Model 1',
                 colors: []
             }
         };

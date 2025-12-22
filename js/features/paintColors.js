@@ -14,100 +14,45 @@ let addToShoppingCart = null;
 // Merge all paint color data sources into one array
 export function mergePaintColorsData() {
     const mergedPaintColors = [];
-    
+
     // Helper function to format name with code
     function formatName(item) {
         const name = item.name || item.name_en || '';
-        if (item.code) {
-            return `${name}(${item.code})`;
+        const code = item.code || item.numeric_code;
+        if (code) {
+            return `${name}(${code})`;
         }
         return name;
     }
-    
-    // Process Vallejo Model Colors
-    if (typeof VALLEJO_MODEL_COLORS !== 'undefined' && VALLEJO_MODEL_COLORS && VALLEJO_MODEL_COLORS.length > 0) {
-        VALLEJO_MODEL_COLORS.forEach(item => {
-            mergedPaintColors.push({
-                name: formatName(item),
-                hex: item.hex,
-                type: item.type || [],
-                producer: 'Vallejo'
+
+    // Helper function to process paint arrays
+    function processPaintData(dataArr, producerName) {
+        if (typeof dataArr !== 'undefined' && dataArr && dataArr.length > 0) {
+            dataArr.forEach(item => {
+                mergedPaintColors.push({
+                    name: formatName(item),
+                    hex: item.hex,
+                    type: item.type || [],
+                    producer: producerName
+                });
             });
-        });
+        }
     }
-    
-    // Process Vallejo Model Air Colors
-    if (typeof VALLEJO_MODEL_AIR_COLORS !== 'undefined' && VALLEJO_MODEL_AIR_COLORS && VALLEJO_MODEL_AIR_COLORS.length > 0) {
-        VALLEJO_MODEL_AIR_COLORS.forEach(item => {
-            mergedPaintColors.push({
-                name: formatName(item),
-                hex: item.hex,
-                type: item.type || [],
-                producer: 'Vallejo'
-            });
-        });
-    }
-    
-    // Process Vallejo Game Color
-    if (typeof VALLEJO_GAME_COLOR_DATA !== 'undefined' && VALLEJO_GAME_COLOR_DATA && VALLEJO_GAME_COLOR_DATA.length > 0) {
-        VALLEJO_GAME_COLOR_DATA.forEach(item => {
-            mergedPaintColors.push({
-                name: formatName(item),
-                hex: item.hex,
-                type: item.type || [],
-                producer: 'Vallejo'
-            });
-        });
-    }
-    
-    // Process Army Painter Speedpaint 2.0
-    if (typeof ARMY_PAINTER_SPEEDPAINT_2_0_COLOURS !== 'undefined' && ARMY_PAINTER_SPEEDPAINT_2_0_COLOURS && ARMY_PAINTER_SPEEDPAINT_2_0_COLOURS.length > 0) {
-        ARMY_PAINTER_SPEEDPAINT_2_0_COLOURS.forEach(item => {
-            mergedPaintColors.push({
-                name: item.name || '',
-                hex: item.hex,
-                type: item.type || [],
-                producer: 'Army Painter'
-            });
-        });
-    }
-    
-    // Process Army Painter Warpaints Fanatic
-    if (typeof ARMY_PAINTER_WARPANTS_FANATIC_COLOURS !== 'undefined' && ARMY_PAINTER_WARPANTS_FANATIC_COLOURS && ARMY_PAINTER_WARPANTS_FANATIC_COLOURS.length > 0) {
-        ARMY_PAINTER_WARPANTS_FANATIC_COLOURS.forEach(item => {
-            mergedPaintColors.push({
-                name: item.name || '',
-                hex: item.hex,
-                type: item.type || [],
-                producer: 'Army Painter'
-            });
-        });
-    }
-    
-    // Process AK Interactive 3rd Gen
-    if (typeof AK_INTERACTIVE_3GEN_DATA !== 'undefined' && AK_INTERACTIVE_3GEN_DATA && AK_INTERACTIVE_3GEN_DATA.length > 0) {
-        AK_INTERACTIVE_3GEN_DATA.forEach(item => {
-            mergedPaintColors.push({
-                name: formatName(item),
-                hex: item.hex,
-                type: item.type || [],
-                producer: 'AK'
-            });
-        });
-    }
-    
-    // Process AK Interactive Quick Gen
-    if (typeof AK_INTERACTIVE_QUICK_GEN !== 'undefined' && AK_INTERACTIVE_QUICK_GEN && AK_INTERACTIVE_QUICK_GEN.length > 0) {
-        AK_INTERACTIVE_QUICK_GEN.forEach(item => {
-            mergedPaintColors.push({
-                name: formatName(item),
-                hex: item.hex,
-                type: item.type || [],
-                producer: 'AK'
-            });
-        });
-    }
-    
+
+    // Define all data sources and their producer names
+    const sources = [
+        { data: typeof VALLEJO_MODEL_COLORS !== 'undefined' ? VALLEJO_MODEL_COLORS : null, producer: 'Vallejo' },
+        { data: typeof VALLEJO_MODEL_AIR_COLORS !== 'undefined' ? VALLEJO_MODEL_AIR_COLORS : null, producer: 'Vallejo' },
+        { data: typeof VALLEJO_GAME_COLOR_DATA !== 'undefined' ? VALLEJO_GAME_COLOR_DATA : null, producer: 'Vallejo' },
+        { data: typeof VALLEJO_XPRESS_COLORS !== 'undefined' ? VALLEJO_XPRESS_COLORS : null, producer: 'Vallejo' },
+        { data: typeof ARMY_PAINTER_SPEEDPAINT_2_0_COLOURS !== 'undefined' ? ARMY_PAINTER_SPEEDPAINT_2_0_COLOURS : null, producer: 'Army Painter' },
+        { data: typeof ARMY_PAINTER_WARPANTS_FANATIC_COLOURS !== 'undefined' ? ARMY_PAINTER_WARPANTS_FANATIC_COLOURS : null, producer: 'Army Painter' },
+        { data: typeof AK_INTERACTIVE_3GEN_DATA !== 'undefined' ? AK_INTERACTIVE_3GEN_DATA : null, producer: 'AK' },
+        { data: typeof AK_INTERACTIVE_QUICK_GEN !== 'undefined' ? AK_INTERACTIVE_QUICK_GEN : null, producer: 'AK' },
+    ];
+
+    sources.forEach(src => processPaintData(src.data, src.producer));
+
     setMergedPaintColors(mergedPaintColors);
     return mergedPaintColors;
 }

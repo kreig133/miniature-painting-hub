@@ -672,7 +672,7 @@ function createNewPalette() {
     
     const newPalette = {
         id: newId,
-        name: `Palette ${paletteNumber}`,
+        name: `Model ${paletteNumber}`,
         colors: []
     };
     
