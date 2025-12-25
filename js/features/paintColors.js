@@ -49,6 +49,9 @@ export function mergePaintColorsData() {
         { data: typeof ARMY_PAINTER_WARPANTS_FANATIC_COLOURS !== 'undefined' ? ARMY_PAINTER_WARPANTS_FANATIC_COLOURS : null, producer: 'Army Painter' },
         { data: typeof AK_INTERACTIVE_3GEN_DATA !== 'undefined' ? AK_INTERACTIVE_3GEN_DATA : null, producer: 'AK' },
         { data: typeof AK_INTERACTIVE_QUICK_GEN !== 'undefined' ? AK_INTERACTIVE_QUICK_GEN : null, producer: 'AK' },
+        { data: typeof CITADEL_BASE_COLORS !== 'undefined' ? CITADEL_BASE_COLORS : null, producer: 'Citadel' },
+        { data: typeof CITADEL_LAYER_COLORS !== 'undefined' ? CITADEL_LAYER_COLORS : null, producer: 'Citadel' },
+        { data: typeof CITADEL_CONTRAST_COLORS !== 'undefined' ? CITADEL_CONTRAST_COLORS : null, producer: 'Citadel' },
     ];
 
     sources.forEach(src => processPaintData(src.data, src.producer));

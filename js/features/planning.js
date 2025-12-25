@@ -530,61 +530,17 @@ export function loadPlanningTable(preserveMode = false) {
         const currentMode = getPlanningMode(); // Read fresh mode
         if (currentMode === 'view') {
             thead.innerHTML = `
-                <th>
-                    <div class="table-header-with-controls">
-                        <span>Color</span>
-                        <select id="sortOrderSelectPlanning" class="sort-order-select">
-                            <option value="hsv">Hue-Saturation-Value</option>
-                            <option value="hvs">Hue-Value-Saturation</option>
-                            <option value="shv">Saturation-Hue-Value</option>
-                            <option value="svh">Saturation-Value-Hue</option>
-                            <option value="vhs">Value-Hue-Saturation</option>
-                            <option value="vsh">Value-Saturation-Hue</option>
-                        </select>
-                    </div>
-                </th>
+                <th>Color</th>
                 <th>Mapping</th>
             `;
-            // Re-initialize sort order select if it exists
-            const sortSelect = document.getElementById('sortOrderSelectPlanning');
-            if (sortSelect && setSortOrder) {
-                sortSelect.value = state.sortOrder || 'hsv';
-            }
         } else {
             thead.innerHTML = `
-                <th>
-                    <div class="table-header-with-controls">
-                        <span>Color</span>
-                        <select id="sortOrderSelectPlanning" class="sort-order-select">
-                            <option value="hsv">Hue-Saturation-Value</option>
-                            <option value="hvs">Hue-Value-Saturation</option>
-                            <option value="shv">Saturation-Hue-Value</option>
-                            <option value="svh">Saturation-Value-Hue</option>
-                            <option value="vhs">Value-Hue-Saturation</option>
-                            <option value="vsh">Value-Saturation-Hue</option>
-                        </select>
-                    </div>
-                </th>
+                <th>Color</th>
                 <th>Candidate 1</th>
                 <th>Candidate 2</th>
                 <th>From All</th>
                 <th>Manual</th>
             `;
-            // Re-initialize sort order select if it exists
-            const sortSelect = document.getElementById('sortOrderSelectPlanning');
-            if (sortSelect && setSortOrder) {
-                sortSelect.value = state.sortOrder || 'hsv';
-                sortSelect.addEventListener('change', (e) => {
-                    if (setSortOrder) setSortOrder(e.target.value);
-                    if (saveSortOrder) saveSortOrder(e.target.value);
-                    if (sortPaletteByHSV && loadPalette) {
-                        const palette = getPalette();
-                        const sorted = sortPaletteByHSV(palette, e.target.value);
-                        loadPalette();
-                    }
-                    updatePlanningTable();
-                });
-            }
         }
     }
 
@@ -1095,20 +1051,10 @@ export function loadPlanningTable(preserveMode = false) {
             buyBtn.type = 'button';
             buyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
             buyBtn.style.display = 'none';
-            buyBtn.style.position = 'absolute';
-            buyBtn.style.top = '50%';
-            buyBtn.style.right = '10px';
-            buyBtn.style.transform = 'translateY(-50%)';
-            buyBtn.style.background = 'rgba(245, 158, 11, 0.9)';
-            buyBtn.style.color = 'white';
-            buyBtn.style.border = 'none';
-            buyBtn.style.borderRadius = '4px';
-            buyBtn.style.padding = '4px 8px';
-            buyBtn.style.cursor = 'pointer';
             
             container.addEventListener('mouseenter', () => {
                 if (!mapping || !mapping.fromAll) {
-                    buyBtn.style.display = 'block';
+                    buyBtn.style.display = 'flex';
                 }
             });
             container.addEventListener('mouseleave', () => {
@@ -1257,50 +1203,6 @@ export function initSortOrder(dependencies = {}) {
     }
     if (dependencies.loadPalette) {
         loadPalette = dependencies.loadPalette;
-    }
-    
-    const sortOrderSelect = document.getElementById('sortOrderSelect');
-    const sortOrderSelectPlanning = document.getElementById('sortOrderSelectPlanning');
-    
-    const handleSortOrderChange = (newSortOrder) => {
-        if (setSortOrder) {
-            setSortOrder(newSortOrder);
-        }
-        if (saveSortOrder) {
-            saveSortOrder(newSortOrder);
-        }
-        
-        if (sortOrderSelect) {
-            sortOrderSelect.value = newSortOrder;
-        }
-        if (sortOrderSelectPlanning) {
-            sortOrderSelectPlanning.value = newSortOrder;
-        }
-        
-        // Re-sort and reload palette
-        const palette = getPalette();
-        if (sortPaletteByHSV) {
-            const sortedPalette = sortPaletteByHSV(palette, newSortOrder);
-            // Update state and save
-            if (savePalette && loadPalette) {
-                // This will be handled by palette module
-                loadPalette();
-            }
-        }
-    };
-    
-    if (sortOrderSelect) {
-        sortOrderSelect.value = state.sortOrder;
-        sortOrderSelect.addEventListener('change', (e) => {
-            handleSortOrderChange(e.target.value);
-        });
-    }
-    
-    if (sortOrderSelectPlanning) {
-        sortOrderSelectPlanning.value = state.sortOrder;
-        sortOrderSelectPlanning.addEventListener('change', (e) => {
-            handleSortOrderChange(e.target.value);
-        });
     }
 }
 

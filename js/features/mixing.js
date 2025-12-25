@@ -863,10 +863,12 @@ function initCustomMixModal() {
                     selectedColors[selectedColorIndex] = color;
                     updateCustomMixDisplay();
                     updateResultColor();
-                    // Close modal
+                    // Close modal and hide wheel
                     if (colorSelectModal) {
                         colorSelectModal.classList.remove('active');
                     }
+                    hideColorSelectWheel();
+                    ungreyOtherWheels();
                 }
             });
             row.appendChild(selectBtn);

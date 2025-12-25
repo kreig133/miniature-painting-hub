@@ -263,6 +263,19 @@ export function addColorToPalette(color) {
         setPalette(sortedPalette);
         savePalette();
         loadPalette();
+        
+        // Update planning table
+        if (updatePlanningTable) {
+            updatePlanningTable();
+        }
+        
+        // Update closest matches when palette changes
+        if (state.currentColor) {
+            if (updateClosestMatches) {
+                updateClosestMatches();
+            }
+        }
+        
         return true;
     }
     return false;
