@@ -453,16 +453,53 @@ class FloatingWheel {
             this.initShowHide();
             this.initDragging();
             this.loadPosition();
+            this.updateButtonText();
         }
     }
     
+    updateButtonText() {
+        if (!this.showBtn || !this.container) return;
+        const isVisible = this.container.style.display !== 'none' && 
+                         window.getComputedStyle(this.container).display !== 'none';
+        // Update title attribute for accessibility
+        this.showBtn.title = isVisible ? 'Hide Color Wheel' : 'Show Color Wheel';
+        // Update text span
+        const textSpan = this.showBtn.querySelector('.show-wheel-btn-text');
+        if (textSpan) {
+            textSpan.textContent = isVisible ? 'Hide' : 'Show';
+        }
+    }
+    
+    showWheel() {
+        if (!this.container) return;
+        // Always show at default position when clicking Show Wheel
+        this.xOffset = this.defaultPosition.x;
+        this.yOffset = this.defaultPosition.y;
+        this.container.style.left = this.xOffset + 'px';
+        this.container.style.top = this.yOffset + 'px';
+        this.container.style.display = 'block';
+        this.updateButtonText();
+    }
+    
+    hideWheel() {
+        if (!this.container) return;
+        this.container.style.display = 'none';
+        this.updateButtonText();
+    }
+    
     initShowHide() {
-        // Show button
+        // Show/Hide button toggle
         this.showBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            this.container.style.display = 'block';
+            const isVisible = this.container.style.display !== 'none' && 
+                             window.getComputedStyle(this.container).display !== 'none';
+            if (isVisible) {
+                this.hideWheel();
+            } else {
+                this.showWheel();
+            }
             return false;
         }, true);
         
@@ -471,7 +508,7 @@ class FloatingWheel {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            this.container.style.display = 'none';
+            this.hideWheel();
             return false;
         });
         
@@ -537,27 +574,9 @@ class FloatingWheel {
     }
     
     loadPosition() {
-        const saved = localStorage.getItem(this.positionStorageKey);
-        if (saved) {
-            try {
-                const pos = JSON.parse(saved);
-                if (pos.x !== undefined && pos.y !== undefined) {
-                    this.xOffset = pos.x;
-                    this.yOffset = pos.y;
-                    this.container.style.left = this.xOffset + 'px';
-                    this.container.style.top = this.yOffset + 'px';
-                    return;
-                }
-            } catch (e) {
-                // Position loading failed, will use default
-            }
-        }
-        
-        // Use default position
+        // Initialize offsets to default (wheel starts hidden, position set when shown)
         this.xOffset = this.defaultPosition.x;
         this.yOffset = this.defaultPosition.y;
-        this.container.style.left = this.xOffset + 'px';
-        this.container.style.top = this.yOffset + 'px';
     }
     
     savePosition() {
@@ -1083,22 +1102,6 @@ export function initCollectionFloatingWheel() {
         positionStorageKey: 'collectionWheelPosition',
         defaultPosition: { x: window.innerWidth - 470, y: 100 }
     });
-    
-    // Additional event listener for show button (for compatibility)
-    const showBtn = document.getElementById('showCollectionWheelBtn');
-    if (showBtn) {
-        document.addEventListener('click', function(e) {
-            if (e.target && e.target.id === 'showCollectionWheelBtn') {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                if (container) {
-                    container.style.display = 'block';
-                }
-                return false;
-            }
-        }, true);
-    }
 }
 
 /**
@@ -1119,13 +1122,19 @@ export function initPaintColorsFloatingWheel() {
         showBtn: showBtn,
         closeBtn: closeBtn,
         positionStorageKey: 'paintColorsWheelPosition',
-        defaultPosition: { x: window.innerWidth - 470, y: 100 }
+        defaultPosition: { x: window.innerWidth - 470, y: 200 }
     });
     
-    // Additional handler to redraw points when shown
-    showBtn.addEventListener('click', () => {
-        drawPaintColorsPointsOnWheel();
-    });
+    // Additional handler to redraw points when wheel is shown
+    // Store reference to floatingWheel instance to access showWheel method
+    const originalShowWheel = floatingWheel.showWheel.bind(floatingWheel);
+    floatingWheel.showWheel = function() {
+        originalShowWheel();
+        // Redraw points when wheel is shown
+        setTimeout(() => {
+            drawPaintColorsPointsOnWheel();
+        }, 10);
+    };
     
     // Initialize sliders
     floatingWheel.initSliders({
