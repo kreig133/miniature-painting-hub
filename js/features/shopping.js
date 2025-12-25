@@ -106,8 +106,8 @@ export function loadShoppingCart() {
         return;
     }
 
-    // Apply filters
-    const filteredCart = filterData ? filterData(shoppingCart, 'shoppingFilters') : shoppingCart;
+    // Don't apply filters - shopping tab has no filter container
+    const filteredCart = shoppingCart;
     
     // Update header count
     updateHeaderCount('shoppingHeader', filteredCart.length, shoppingCart.length);

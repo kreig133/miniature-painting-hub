@@ -4,7 +4,7 @@
  */
 
 import { rgbToHex, rgbToHSV, hsvToRGB, hexToRgb } from '../utils/colorUtils.js';
-import { state, getPalette, getMyCollection, getMergedPaintColors } from '../core/state.js';
+import { state, getPalette, getMyCollection, getMergedPaintColors, getShoppingCart } from '../core/state.js';
 import { getEffectiveMyCollection } from './myCollection.js';
 import { savePaletteValueMiddle, savePaletteValueRange, saveCollectionValueMiddle, saveCollectionValueRange } from '../utils/storage.js';
 import { filterData } from './filters.js';
@@ -108,6 +108,12 @@ class ColorWheel {
         let filteredColors = colors;
         if (filterConfig && filterConfig.filterContainerId && filterData) {
             filteredColors = filterData(colors, filterConfig.filterContainerId);
+        }
+        
+        // Limit to 1000 points maximum
+        const MAX_POINTS = 1000;
+        if (filteredColors.length > MAX_POINTS) {
+            filteredColors = filteredColors.slice(0, MAX_POINTS);
         }
         
         // Calculate Value range
@@ -236,6 +242,19 @@ class ColorWheel {
         magnifyingCanvas.width = 120;
         magnifyingCanvas.height = 120;
         
+        // Get tooltip element for paint color wheels and collection wheel
+        // Look up tooltip dynamically each time to ensure it exists
+        const getTooltip = () => {
+            if (this.type === 'paintColors') {
+                return document.getElementById('paintColorsWheelTooltip');
+            } else if (this.type === 'colorSelect') {
+                return document.getElementById('colorSelectWheelTooltip');
+            } else if (this.type === 'collection') {
+                return document.getElementById('collectionWheelTooltip');
+            }
+            return null;
+        };
+        
         let animationFrameId = null;
         let lastUpdateTime = 0;
         const throttleDelay = 16;
@@ -256,22 +275,27 @@ class ColorWheel {
                 const x = Math.floor((e.clientX - rect.left) * scaleX);
                 const y = Math.floor((e.clientY - rect.top) * scaleY);
                 
-                // Check if hovering over a point
-                let hoveringOverPoint = false;
+                // Check if hovering over a point and get the point data
+                let hoveredPoint = null;
                 for (const point of this.pointPositions) {
                     const dx = x - point.x;
                     const dy = y - point.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
                     if (distance <= point.radius) {
-                        hoveringOverPoint = true;
+                        hoveredPoint = point;
                         this.canvas.style.cursor = 'pointer';
                         break;
                     }
                 }
                 
-                if (!hoveringOverPoint) {
+                if (!hoveredPoint) {
                     this.canvas.style.cursor = this.type === 'palette' ? 'crosshair' : 'default';
+                    // Hide tooltip if not hovering over a paint point
+                    const tooltip = getTooltip();
+                    if (tooltip) {
+                        tooltip.style.display = 'none';
+                    }
                 }
                 
                 const dx = x - this.centerX;
@@ -287,6 +311,67 @@ class ColorWheel {
                     magnifyingGlass.style.display = 'block';
                     magnifyingGlass.style.left = glassX + 'px';
                     magnifyingGlass.style.top = glassY + 'px';
+                    
+                    // Show tooltip for paint colors above magnifying glass
+                    const tooltip = getTooltip();
+                    if (tooltip && hoveredPoint && hoveredPoint.color) {
+                        const color = hoveredPoint.color;
+                        const tooltipOffset = 10; // Gap between tooltip and magnifying glass
+                        
+                        // Check if paint is in My Collection or Shopping Cart
+                        const myCollection = getMyCollection();
+                        const shoppingCart = getShoppingCart();
+                        const inMyCollection = myCollection.some(c => 
+                            c.hex === color.hex && 
+                            c.name === color.name && 
+                            c.producer === color.producer
+                        );
+                        const inShoppingCart = shoppingCart.some(c => 
+                            c.hex === color.hex && 
+                            c.name === color.name && 
+                            c.producer === color.producer
+                        );
+                        
+                        // Determine icon based on status
+                        let iconHTML = '';
+                        if (inMyCollection) {
+                            iconHTML = '<div class="tooltip-status-icon tooltip-check-icon">✓</div>';
+                        } else if (inShoppingCart) {
+                            iconHTML = '<div class="tooltip-status-icon tooltip-shopping-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg></div>';
+                        } else {
+                            iconHTML = '<div class="tooltip-status-icon tooltip-question-icon">?</div>';
+                        }
+                        
+                        // Build tooltip content
+                        let tooltipHTML = `<div class="tooltip-header">${iconHTML}<div class="tooltip-name">${color.name || ''}</div></div>`;
+                        
+                        if (color.type && Array.isArray(color.type) && color.type.length > 0) {
+                            tooltipHTML += `<div class="tooltip-type">${color.type.join(', ')}</div>`;
+                        }
+                        
+                        if (color.producer) {
+                            tooltipHTML += `<div class="tooltip-producer">${color.producer}</div>`;
+                        }
+                        
+                        tooltip.innerHTML = tooltipHTML;
+                        
+                        // Force a reflow to ensure tooltip is rendered before getting height
+                        tooltip.style.display = 'block';
+                        void tooltip.offsetHeight; // Force reflow
+                        
+                        // Position tooltip above magnifying glass, centered horizontally
+                        const tooltipHeight = tooltip.offsetHeight || 80;
+                        const tooltipX = glassX + glassSize / 2;
+                        const tooltipY = glassY - tooltipHeight - tooltipOffset;
+                        
+                        tooltip.style.left = tooltipX + 'px';
+                        tooltip.style.top = tooltipY + 'px';
+                        tooltip.style.transform = 'translateX(-50%)';
+                        tooltip.style.visibility = 'visible';
+                        tooltip.style.opacity = '1';
+                    } else if (tooltip) {
+                        tooltip.style.display = 'none';
+                    }
                     
                     const zoom = 2;
                     const sourceSize = glassSize / zoom;
@@ -319,6 +404,11 @@ class ColorWheel {
                 } else {
                     magnifyingGlass.style.display = 'none';
                     this.canvas.style.cursor = 'default';
+                    // Hide tooltip when outside wheel
+                    const tooltip = getTooltip();
+                    if (tooltip) {
+                        tooltip.style.display = 'none';
+                    }
                 }
             });
         };
@@ -330,6 +420,11 @@ class ColorWheel {
                 cancelAnimationFrame(animationFrameId);
             }
             magnifyingGlass.style.display = 'none';
+            // Hide tooltip when mouse leaves canvas
+            const tooltip = getTooltip();
+            if (tooltip) {
+                tooltip.style.display = 'none';
+            }
         });
     }
 }

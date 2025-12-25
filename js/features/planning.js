@@ -723,7 +723,7 @@ export function loadPlanningTable(preserveMode = false) {
                     if (inShoppingList) {
                         const shoppingIcon = document.createElement('div');
                         shoppingIcon.className = 'planning-paint-status-icon planning-shopping-icon';
-                        shoppingIcon.innerHTML = '🛒';
+                        shoppingIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
                         shoppingIcon.style.position = 'absolute';
                         shoppingIcon.style.bottom = '2px';
                         shoppingIcon.style.left = '2px';
@@ -892,7 +892,7 @@ export function loadPlanningTable(preserveMode = false) {
                                     shoppingIcon.style.width = '16px';
                                     shoppingIcon.style.height = '16px';
                                     shoppingIcon.style.fontSize = '10px';
-                                    shoppingIcon.innerHTML = '🛒';
+                                    shoppingIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
                                     shoppingIcon.style.position = 'absolute';
                                     shoppingIcon.style.bottom = '2px';
                                     shoppingIcon.style.left = '2px';
@@ -1093,7 +1093,7 @@ export function loadPlanningTable(preserveMode = false) {
             const buyBtn = document.createElement('button');
             buyBtn.className = 'planning-buy-btn';
             buyBtn.type = 'button';
-            buyBtn.innerHTML = '🛒';
+            buyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
             buyBtn.style.display = 'none';
             buyBtn.style.position = 'absolute';
             buyBtn.style.top = '50%';
@@ -1341,10 +1341,14 @@ export function checkAndSetPlanningMode() {
         }
     }
     
-    // Set the mode - this will automatically trigger:
-    // 1. loadPlanningTable() via subscription
-    // 2. Button update via subscription
+    const oldMode = getPlanningMode();
+    // Set the mode - this will automatically trigger callbacks if mode changed
     setPlanningMode(newMode);
+    
+    // If mode didn't change, we still need to load the table
+    if (oldMode === newMode) {
+        loadPlanningTable();
+    }
 }
 
 // Initialize planning add color modal
