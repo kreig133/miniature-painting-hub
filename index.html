@@ -251,7 +251,20 @@
                 <div class="color-card-modal-content">
                     <div class="color-card-modal-header">
                         <h3>Color Card</h3>
-                        <button class="color-card-modal-close" id="colorCardModalClose" type="button">&times;</button>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="color-card-print-btn" id="colorCardPrintBtn" type="button" title="Export to PDF">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                    <rect x="6" y="14" width="12" height="8"></rect>
+                                </svg>
+                            </button>
+                            <button class="color-card-modal-close" id="colorCardModalClose" type="button">&times;</button>
+                        </div>
+                    </div>
+                    <div class="color-card-export-loading" id="colorCardExportLoading" style="display: none;">
+                        <div class="color-card-export-loading-spinner"></div>
+                        <div class="color-card-export-loading-text">Exporting to PDF...</div>
                     </div>
                     <div class="color-card-modal-body" id="colorCardModalBody">
                         <div class="color-card-images-container">
@@ -773,6 +786,12 @@
     
     <!-- CIEDE2000 Color Matching Library -->
     <script src="https://cdn.jsdelivr.net/gh/michel-leonard/ciede2000-color-matching@latest/docs/assets/scripts/ciede-2000.min.js"></script>
+    
+    <!-- html2canvas for capturing DOM elements as images -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <!-- Main application (ES6 module) -->
     <script type="module" src="js/main.js"></script>

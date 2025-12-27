@@ -919,6 +919,128 @@ function setupColorCardControls() {
     }
 }
 
+// Export color card to PDF
+async function exportColorCardToPDF() {
+    const leftContainer = document.getElementById('colorCardImageContainerLeft');
+    const rightContainer = document.getElementById('colorCardImageContainerRight');
+    
+    if (!leftContainer || !rightContainer) {
+        alert('Cannot export: images not loaded');
+        return;
+    }
+    
+    // Disable button to prevent multiple clicks
+    const printBtn = document.getElementById('colorCardPrintBtn');
+    const loadingIndicator = document.getElementById('colorCardExportLoading');
+    
+    if (printBtn) {
+        printBtn.disabled = true;
+        printBtn.style.opacity = '0.5';
+        printBtn.style.cursor = 'not-allowed';
+    }
+    
+    // Show loading indicator immediately and ensure it renders
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'flex';
+        // Force immediate reflow to ensure the element is visible
+        void loadingIndicator.offsetHeight;
+    }
+    
+    // Use double requestAnimationFrame to ensure the loading indicator is painted
+    // before starting the heavy html2canvas operations
+    await new Promise(resolve => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(resolve);
+        });
+    });
+    
+    try {
+        // Check if libraries are loaded
+        if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+            alert('PDF export libraries not loaded. Please refresh the page and try again.');
+            if (printBtn) {
+                printBtn.disabled = false;
+                printBtn.style.opacity = '1';
+                printBtn.style.cursor = 'pointer';
+            }
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        
+        // Capture with optimized settings - minimal filtering
+        // Since we're capturing the container directly, html2canvas will only process elements inside it
+        // We just need to ensure we don't accidentally capture unwanted elements that might leak in
+        const captureOptions = {
+            scale: 1,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            allowTaint: true,
+            imageTimeout: 15000,
+            removeContainer: false
+        };
+        
+        // Capture sequentially to reduce load (was causing issues in parallel)
+        const leftCanvas = await html2canvas(leftContainer, captureOptions);
+        const rightCanvas = await html2canvas(rightContainer, captureOptions);
+        
+        // Create PDF - each image on its own page
+        // Determine orientation based on image dimensions
+        const leftOrientation = leftCanvas.width > leftCanvas.height ? 'landscape' : 'portrait';
+        const rightOrientation = rightCanvas.width > rightCanvas.height ? 'landscape' : 'portrait';
+        
+        // Create PDF with first page dimensions (left image)
+        const pdf = new jsPDF({
+            orientation: leftOrientation,
+            unit: 'px',
+            format: [leftCanvas.width, leftCanvas.height]
+        });
+        
+        // Add left image to page 1
+        const leftImgData = leftCanvas.toDataURL('image/png', 1.0);
+        pdf.addImage(leftImgData, 'PNG', 0, 0, leftCanvas.width, leftCanvas.height, undefined, 'FAST');
+        
+        // Add new page for right image
+        pdf.addPage({
+            orientation: rightOrientation,
+            unit: 'px',
+            format: [rightCanvas.width, rightCanvas.height]
+        });
+        
+        // Add right image to page 2
+        const rightImgData = rightCanvas.toDataURL('image/png', 1.0);
+        pdf.addImage(rightImgData, 'PNG', 0, 0, rightCanvas.width, rightCanvas.height, undefined, 'FAST');
+        
+        // Save PDF
+        pdf.save('color-card.pdf');
+        
+        // Hide loading indicator
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
+        
+    } catch (error) {
+        console.error('Error exporting to PDF:', error);
+        alert('Error exporting to PDF: ' + (error.message || 'Unknown error'));
+        
+        // Hide loading indicator on error
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
+    } finally {
+        // Re-enable button
+        if (printBtn) {
+            printBtn.disabled = false;
+            printBtn.style.opacity = '1';
+            printBtn.style.cursor = 'pointer';
+        }
+    }
+}
+
 // Close color card modal
 function closeColorCardModal() {
     const modal = document.getElementById('colorCardModal');
@@ -937,7 +1059,15 @@ function closeColorCardModal() {
 export function initColorCard() {
     const generateBtn = document.getElementById('generateColorCardBtn');
     const closeBtn = document.getElementById('colorCardModalClose');
+    const printBtn = document.getElementById('colorCardPrintBtn');
     const modal = document.getElementById('colorCardModal');
+    
+    // Print/Export button click
+    if (printBtn) {
+        printBtn.addEventListener('click', () => {
+            exportColorCardToPDF();
+        });
+    }
     
     // Generate button click
     if (generateBtn) {
