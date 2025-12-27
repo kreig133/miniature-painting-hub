@@ -48,6 +48,7 @@ import {
     highlightAndScrollToPaletteItem,
     highlightAndScrollToCollectionItem
 } from './features/colorWheel.js';
+import { initColorCard } from './features/colorCard.js';
 
 // Initialize application
 export function init() {
@@ -220,7 +221,10 @@ export function init() {
     // 17. Initialize mixing feature
     initMixing();
     
-    // 18. Load initial data
+    // 18. Initialize color card feature
+    initColorCard();
+    
+    // 19. Load initial data
     loadPaintColors();
     loadMyCollection();
     // Don't call loadPlanningTable() here - it will be called by checkAndSetPlanningMode()
