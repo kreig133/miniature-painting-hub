@@ -1424,7 +1424,46 @@ header p {
 .current-color {
     background: #f8f9fa;
     border-radius: 15px;
-    padding: 3px;
+    padding: 5px;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.filter-icon-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.filter-icon-btn:hover {
+    background: #5568d3;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.filter-icon-btn.active {
+    background: #5568d3;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+}
+
+.filter-icon-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: white;
 }
 
 .current-color-content {
@@ -3502,6 +3541,7 @@ header p {
 /* Filter Container Styles */
 .filter-container {
     margin-bottom: 20px;
+    margin-top: 45px;
     padding: 15px;
     background-color: #f8f9fa;
     border-radius: 8px;

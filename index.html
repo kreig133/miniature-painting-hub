@@ -93,6 +93,11 @@
                 </div>
 
                 <div class="current-color" id="currentColorSection" style="display: none;">
+                    <button class="filter-icon-btn" id="selectedColorFilterBtn" type="button" title="Filter">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                    </button>
                     <div class="filter-container" id="selectedColorFilters" style="display: none;">
                         <!-- Will be populated by JavaScript -->
                     </div>
@@ -146,7 +151,10 @@
                         <div class="cursor-info" id="cursorInfo"></div>
                     </div>
                     <div class="instructions">
-                        <p>Click anywhere on the image to pick a color</p>
+                        <p>Click anywhere on the image to pick a color
+                            <br>Pallete 1 & 2 - closest colors from Palette, Candidate 1 & 2 - from your paint collection, From All - from all known paints 
+                            <br>Use filters to narrow down the paints (by type, producer, name etc.)
+                        </p>
                     </div>
                 </div>
 
