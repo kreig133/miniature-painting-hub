@@ -483,54 +483,54 @@ const VALLEJO_GAME_COLOR_DATA = [
         "hex": "#BFC2C4",
         "code": "72.052",
         "name": "Silver",
-      "type": ["acrylic", "metallic"]
+      "type": ["metallic"]
     },
       {
         "hex": "#919498",
         "code": "72.053",
         "name": "Chainmail",
-      "type": ["acrylic", "metallic"]
+      "type": ["metallic"]
     },
       {
         "hex": "#6E7174",
         "code": "72.054",
         "name": "Dark Gunmetal",
-      "type": ["acrylic", "metallic"]
+      "type": ["metallic"]
     },
       {
         "hex": "#DCC367",
         "code": "72.055",
         "name": "Polished Gold",
-      "type": ["acrylic", "metallic"]
+      "type": ["metallic"]
     },
       {
         "hex": "#C1964C",
         "code": "72.056",
         "name": "Glorious Gold",
-      "type": ["acrylic", "metallic"]
+      "type": ["metallic"]
     },
       {
         "hex": "#A3763D",
         "code": "72.057",
         "name": "Bright Bronze",
-      "type": ["acrylic", "metallic"]
+      "type": ["metallic"]
     },
       {
         "hex": "#A37A59",
         "code": "72.058",
         "name": "Brassy Brass",
-      "type": ["acrylic", "metallic"]
+      "type": ["metallic"]
     },
       {
         "hex": "#81624E",
         "code": "72.059",
         "name": "Hammered Copper",
-      "type": ["acrylic", "metallic"]
+      "type": ["metallic"]
     },
       {
         "hex": "#4E3831",
         "code": "72.060",
         "name": "Tinny Tin",
-      "type": ["acrylic", "metallic"]
+      "type": ["metallic"]
     }
     ];

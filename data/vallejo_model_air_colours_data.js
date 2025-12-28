@@ -632,7 +632,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#9CA0A4",
     "name_es": "Aluminio (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -644,7 +643,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#A6AAAD",
     "name_es": "Plata RLM01 (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -656,7 +654,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#B0B5B9",
     "name_es": "Cromo (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -668,7 +665,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#7C8187",
     "name_es": "Acero (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -680,7 +676,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#997C47",
     "name_es": "Oro (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -692,7 +687,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#B28B47",
     "name_es": "Latón (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -704,7 +698,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#8C5E43",
     "name_es": "Cobre (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -716,7 +709,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#6B4E41",
     "name_es": "Óxido (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -728,7 +720,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#A64E55",
     "name_es": "Rojo Señal (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -740,7 +731,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#4A6B8A",
     "name_es": "Azul Ártico (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -752,7 +742,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#53575B",
     "name_es": "Fusil (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],
@@ -764,7 +753,6 @@ const VALLEJO_MODEL_AIR_COLORS = [
     "hex": "#2B2C2E",
     "name_es": "Negro (Metalizado)",
     "type": [
-      "acrylic",
       "air",
       "metallic"
     ],

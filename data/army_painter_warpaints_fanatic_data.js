@@ -1137,7 +1137,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Red Copper",
     "hex": "#6A3C33",
     "type": [
-        "acrylic",
         "metallic"
       ]
   },
@@ -1145,7 +1144,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Weapon Bronze",
     "hex": "#8B5A2B",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1153,7 +1151,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "True Copper",
     "hex": "#B86D3A",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1161,7 +1158,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Evil Chrome",
     "hex": "#5E4B35",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1169,7 +1165,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "True Brass",
     "hex": "#9C8C56",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1177,7 +1172,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Tainted Gold",
     "hex": "#7A7548",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1185,7 +1179,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Greedy Gold",
     "hex": "#B58E36",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1193,7 +1186,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Bright Gold",
     "hex": "#D9B54A",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1201,7 +1193,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Mithril",
     "hex": "#C0C5CE",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1209,7 +1200,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Shining Silver",
     "hex": "#9EA6B0",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1217,7 +1207,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Plate Mail Metal",
     "hex": "#747C87",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1225,7 +1214,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Gun Metal",
     "hex": "#4E5863",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1233,7 +1221,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Cobalt Metal",
     "hex": "#2B3847",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1241,7 +1228,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Death Metal",
     "hex": "#1A1E21",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1249,7 +1235,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Dark Emerald",
     "hex": "#28422E",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1257,7 +1242,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Glittering Green",
     "hex": "#4A7A45",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1265,7 +1249,6 @@ const ARMY_PAINTER_WARPANTS_FANATIC_COLOURS = [
     "name": "Gemstone Red",
     "hex": "#8F2A2A",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
