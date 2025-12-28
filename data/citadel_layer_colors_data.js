@@ -228,7 +228,7 @@ const CITADEL_LAYER_COLORS = [
       "name": "Auric Armour Gold",
       "producer": "Citadel",
       "type": [
-        "acrylic"
+        "metallic"
       ]
     },
     {
@@ -508,7 +508,7 @@ const CITADEL_LAYER_COLORS = [
         "name": "Brass Scorpion",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic"
         ]
       },
       {
@@ -516,7 +516,7 @@ const CITADEL_LAYER_COLORS = [
         "name": "Liberator Gold",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic"
         ]
       },
       {
@@ -612,7 +612,7 @@ const CITADEL_LAYER_COLORS = [
         "name": "Castellax Bronze",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic"
         ]
       },
       {
@@ -620,7 +620,7 @@ const CITADEL_LAYER_COLORS = [
         "name": "Hashut Copper",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic"
         ]
       },
       {
@@ -628,7 +628,7 @@ const CITADEL_LAYER_COLORS = [
         "name": "Canoptek Alloy",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic"
         ]
       },
       {
@@ -636,7 +636,7 @@ const CITADEL_LAYER_COLORS = [
         "name": "Fulgurite Copper",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic"
         ]
       },
       {
@@ -644,7 +644,7 @@ const CITADEL_LAYER_COLORS = [
         "name": "Skullcrusher Brass",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+            "metallic"
         ]
       },
       {
@@ -692,7 +692,7 @@ const CITADEL_LAYER_COLORS = [
         "name": "Sycorax Bronze",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic"
         ]
       },
       {
@@ -700,7 +700,7 @@ const CITADEL_LAYER_COLORS = [
         "name": "Gehenna's Gold",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic"
         ]
       },
       {
@@ -708,7 +708,7 @@ const CITADEL_LAYER_COLORS = [
         "name": "Ironbreaker",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic"
         ]
       },
       {

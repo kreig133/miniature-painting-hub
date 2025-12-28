@@ -121,7 +121,7 @@ const CITADEL_BASE_COLORS = [
       "name": "Retributor Armour",
       "producer": "Citadel",
       "type": [
-        "acrylic",
+        "metallic",
         "opaque"
       ]
     },
@@ -130,7 +130,7 @@ const CITADEL_BASE_COLORS = [
       "name": "Iron Warriors",
       "producer": "Citadel",
       "type": [
-        "acrylic",
+        "metallic",
         "opaque"
       ]
     },
@@ -139,7 +139,7 @@ const CITADEL_BASE_COLORS = [
       "name": "Grey Knights Steel",
       "producer": "Citadel",
       "type": [
-        "acrylic",
+        "metallic",
         "opaque"
       ]
     },
@@ -292,7 +292,7 @@ const CITADEL_BASE_COLORS = [
       "name": "Screaming Bell",
       "producer": "Citadel",
       "type": [
-        "acrylic",
+        "metallic",
         "opaque"
       ]
     },
@@ -301,7 +301,7 @@ const CITADEL_BASE_COLORS = [
       "name": "Leadbelcher",
       "producer": "Citadel",
       "type": [
-        "acrylic",
+        "metallic",
         "opaque"
       ]
     },
@@ -373,7 +373,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Runelord Brass",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic",
+          "opaque"
         ]
       },
       {
@@ -381,7 +382,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Waaagh! Flesh",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -389,7 +391,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Catachan Flesh",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -397,7 +400,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Macragge Blue",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -405,7 +409,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Ratskin Flesh",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -413,7 +418,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Morghast Bone",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -421,7 +427,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Balthasar Gold",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic",
+          "opaque"
         ]
       },
       {
@@ -429,7 +436,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Iron Hands Steel",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic",
+          "opaque"
         ]
       },
       {
@@ -437,7 +445,8 @@ const CITADEL_BASE_COLORS = [
         "name": "The Fang",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -445,7 +454,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Dryad Bark",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -453,7 +463,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Death Korps Drab",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -461,7 +472,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Jokaero Orange",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -469,7 +481,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Grey Seer",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -477,7 +490,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Warplock Bronze",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "metallic",
+          "opaque"
         ]
       },
       {
@@ -485,7 +499,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Abaddon Black",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       },
       {
@@ -493,7 +508,8 @@ const CITADEL_BASE_COLORS = [
         "name": "Corax White",
         "producer": "Citadel",
         "type": [
-          "acrylic"
+          "acrylic",
+          "opaque"
         ]
       }
     ];

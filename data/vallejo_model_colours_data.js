@@ -1946,7 +1946,6 @@ const VALLEJO_MODEL_COLORS = [
     "name_en": "Silver",
     "name_es": "Plata",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1957,7 +1956,6 @@ const VALLEJO_MODEL_COLORS = [
     "name_en": "Oily Steel",
     "name_es": "Acero Engrasado",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1968,7 +1966,6 @@ const VALLEJO_MODEL_COLORS = [
     "name_en": "Natural Steel",
     "name_es": "Acero Natural",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1979,7 +1976,6 @@ const VALLEJO_MODEL_COLORS = [
     "name_en": "Gunmetal",
     "name_es": "Gris Metalizado",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -1990,7 +1986,6 @@ const VALLEJO_MODEL_COLORS = [
     "name_en": "Gold",
     "name_es": "Oro",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -2001,7 +1996,7 @@ const VALLEJO_MODEL_COLORS = [
     "name_en": "Old Gold",
     "name_es": "Oro Viejo",
     "type": [
-      "acrylic"
+      "metallic"
     ]
   },
   {
@@ -2011,7 +2006,6 @@ const VALLEJO_MODEL_COLORS = [
     "name_en": "Bronze",
     "name_es": "Bronce",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -2022,7 +2016,6 @@ const VALLEJO_MODEL_COLORS = [
     "name_en": "Brass",
     "name_es": "Latón",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -2033,7 +2026,6 @@ const VALLEJO_MODEL_COLORS = [
     "name_en": "Copper",
     "name_es": "Cobre",
     "type": [
-      "acrylic",
       "metallic"
     ]
   },
@@ -2044,7 +2036,6 @@ const VALLEJO_MODEL_COLORS = [
     "name_en": "Gunmetal Blue",
     "name_es": "Metal Azul",
     "type": [
-      "acrylic",
       "metallic"
     ]
   }
