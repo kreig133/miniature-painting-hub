@@ -1795,9 +1795,9 @@ function initPlanningAddColorModal() {
         // Reset to default values
         selectedH = 0;
         selectedS = 0;
-        selectedV = 0.5;
-        valueSlider.value = 50;
-        valueDisplay.textContent = '50';
+        selectedV = 1.0; // 100% brightness
+        valueSlider.value = 100;
+        valueDisplay.textContent = '100';
         
         // Draw initial wheel
         drawColorWheel();

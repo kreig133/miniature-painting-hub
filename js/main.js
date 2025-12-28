@@ -217,7 +217,9 @@ export function init() {
     setMixingCallback(loadMixingTable);
     
     // 17. Initialize mixing feature
-    initMixing();
+    initMixing({
+        addColorToPalette
+    });
     
     // 18. Initialize color card feature
     initColorCard();

@@ -29,7 +29,7 @@ class ColorWheel {
         this.centerY = this.size / 2;
         this.radius = this.size / 2 - 10;
         this.pointPositions = [];
-        this.valueMiddle = config.valueMiddle || 50;
+        this.valueMiddle = config.valueMiddle || 100;
         this.valueRange = config.valueRange || 100;
         this.type = config.type; // 'palette', 'collection', 'paintColors', 'colorSelect'
         
@@ -58,7 +58,7 @@ class ColorWheel {
                 if (distance <= this.radius) {
                     const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
                     const saturation = Math.min(distance / this.radius, 1);
-                    const value = 1;
+                    const value = this.valueMiddle / 100; // Convert from 0-100 to 0-1 range
                     
                     const rgb = hsvToRGB(angle, saturation, value);
                     
@@ -116,7 +116,8 @@ class ColorWheel {
             filteredColors = filteredColors.slice(0, MAX_POINTS);
         }
         
-        // Calculate Value range
+        // Calculate Value range (skip filtering if range is 100 or more)
+        const skipValueFilter = this.valueRange >= 100;
         const valueMin = this.valueMiddle - (this.valueRange / 2);
         const valueMax = this.valueMiddle + (this.valueRange / 2);
         
@@ -139,12 +140,13 @@ class ColorWheel {
             // Convert RGB to HSV
             const hsv = rgbToHSV(r, g, b);
             
-            // Convert Value from 0-1 to 0-100 for comparison
-            const valuePercent = hsv.v * 100;
-            
-            // Filter by Value range
-            if (valuePercent < valueMin || valuePercent > valueMax) {
-                return;
+            // Filter by Value range (skip if range is 100 or more)
+            if (!skipValueFilter) {
+                // Convert Value from 0-1 to 0-100 for comparison
+                const valuePercent = hsv.v * 100;
+                if (valuePercent < valueMin || valuePercent > valueMax) {
+                    return;
+                }
             }
             
             // Calculate position on color wheel
@@ -603,7 +605,7 @@ class FloatingWheel {
             valueSlider.value = config.valueMiddle;
             valueDisplay.textContent = Math.round(config.valueMiddle);
             rangeSlider.value = config.valueRange;
-            rangeDisplay.textContent = Math.round(config.valueRange);
+            rangeDisplay.textContent = formatRangeDisplay(config.valueRange);
             
             valueSlider.addEventListener('input', (e) => {
                 const value = parseFloat(e.target.value);
@@ -615,13 +617,20 @@ class FloatingWheel {
             
             rangeSlider.addEventListener('input', (e) => {
                 const value = parseFloat(e.target.value);
-                rangeDisplay.textContent = Math.round(value);
+                rangeDisplay.textContent = formatRangeDisplay(value);
                 if (config.onRangeChange) {
                     config.onRangeChange(value);
                 }
             });
         }
     }
+}
+
+/**
+ * Format range display value - show "All" when range is 100
+ */
+function formatRangeDisplay(rangeValue) {
+    return rangeValue >= 100 ? 'All' : Math.round(rangeValue).toString();
 }
 
 /**
@@ -984,7 +993,7 @@ export function initColorSelectFloatingWheel() {
         canvas: canvas,
         ctx: ctx,
         size: 400,
-        valueMiddle: 50,
+        valueMiddle: 100,
         valueRange: 100,
         type: 'colorSelect'
     });
@@ -1171,7 +1180,7 @@ export function initColorWheelSliders() {
         paletteValueSlider.value = state.paletteValueMiddle;
         paletteValueDisplay.textContent = Math.round(state.paletteValueMiddle);
         paletteRangeSlider.value = state.paletteValueRange;
-        paletteRangeDisplay.textContent = Math.round(state.paletteValueRange);
+        paletteRangeDisplay.textContent = formatRangeDisplay(state.paletteValueRange);
         
         paletteValueSlider.addEventListener('input', (e) => {
             state.paletteValueMiddle = parseFloat(e.target.value);
@@ -1182,7 +1191,7 @@ export function initColorWheelSliders() {
         
         paletteRangeSlider.addEventListener('input', (e) => {
             state.paletteValueRange = parseFloat(e.target.value);
-            paletteRangeDisplay.textContent = Math.round(state.paletteValueRange);
+            paletteRangeDisplay.textContent = formatRangeDisplay(state.paletteValueRange);
             savePaletteValueRange(state.paletteValueRange);
             drawPalettePointsOnWheel();
         });
@@ -1198,7 +1207,7 @@ export function initColorWheelSliders() {
         collectionValueSlider.value = state.collectionValueMiddle;
         collectionValueDisplay.textContent = Math.round(state.collectionValueMiddle);
         collectionRangeSlider.value = state.collectionValueRange;
-        collectionRangeDisplay.textContent = Math.round(state.collectionValueRange);
+        collectionRangeDisplay.textContent = formatRangeDisplay(state.collectionValueRange);
         
         collectionValueSlider.addEventListener('input', (e) => {
             state.collectionValueMiddle = parseFloat(e.target.value);
@@ -1209,7 +1218,7 @@ export function initColorWheelSliders() {
         
         collectionRangeSlider.addEventListener('input', (e) => {
             state.collectionValueRange = parseFloat(e.target.value);
-            collectionRangeDisplay.textContent = Math.round(state.collectionValueRange);
+            collectionRangeDisplay.textContent = formatRangeDisplay(state.collectionValueRange);
             saveCollectionValueRange(state.collectionValueRange);
             drawCollectionPointsOnWheel();
         });

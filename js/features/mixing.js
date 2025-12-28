@@ -2,12 +2,15 @@
  * Mixing Color feature - generates and displays color pairs from My Collection
  */
 
-import { getMyCollection, getMergedPaintColors } from '../core/state.js';
+import { getMyCollection, getMergedPaintColors, getPalette } from '../core/state.js';
 import { getEffectiveMyCollection } from './myCollection.js';
 import { filterData, createFilterCheckboxes } from './filters.js';
 import { addGradientClickToColorBox, hexToRgb, rgbToHex, rgbToHSV } from '../utils/colorUtils.js';
 import { addHoverTooltipToColorBox } from '../utils/domUtils.js';
 import mixbox from 'https://scrtwpns.com/mixbox.esm.js';
+
+// Dependencies
+let addColorToPalette = null;
 
 // Generate all unique pairs from My Collection
 // Filters only affect Color 1, Color 2 uses the full unfiltered collection
@@ -196,13 +199,104 @@ export function loadMixingTable(filterContainerId = null) {
                     
                     const resultHex = rgbToHex(resultR, resultG, resultB);
                     
+                    // Check if color is already in palette
+                    const palette = getPalette();
+                    const isColorInPalette = palette.some(color => color.hex.toLowerCase() === resultHex.toLowerCase());
+                    
+                    // Create container for result box and add button
+                    const resultContainer = document.createElement('div');
+                    resultContainer.style.position = 'relative';
+                    resultContainer.style.display = 'inline-block';
+                    resultContainer.style.verticalAlign = 'middle';
+                    
                     const resultBox = document.createElement('div');
                     resultBox.className = 'color-box';
                     resultBox.style.backgroundColor = resultHex;
                     resultBox.style.display = 'inline-block';
                     resultBox.style.verticalAlign = 'middle';
                     addGradientClickToColorBox(resultBox, resultHex);
-                    resultCell.appendChild(resultBox);
+                    resultContainer.appendChild(resultBox);
+                    
+                    // Add "+" button (only if color is not already in palette)
+                    if (!isColorInPalette) {
+                        const addToPaletteBtn = document.createElement('button');
+                    addToPaletteBtn.className = 'mixing-add-to-palette-btn';
+                    addToPaletteBtn.type = 'button';
+                    addToPaletteBtn.title = 'Add to palette';
+                    addToPaletteBtn.style.display = 'none';
+                    addToPaletteBtn.style.position = 'absolute';
+                    addToPaletteBtn.style.top = '50%';
+                    addToPaletteBtn.style.left = '50%';
+                    addToPaletteBtn.style.transform = 'translate(-50%, -50%)';
+                    addToPaletteBtn.style.width = '28px';
+                    addToPaletteBtn.style.height = '28px';
+                    addToPaletteBtn.style.borderRadius = '50%';
+                    addToPaletteBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                    addToPaletteBtn.style.color = 'white';
+                    addToPaletteBtn.style.border = 'none';
+                    addToPaletteBtn.style.cursor = 'pointer';
+                    addToPaletteBtn.style.zIndex = '10';
+                    addToPaletteBtn.style.alignItems = 'center';
+                    addToPaletteBtn.style.justifyContent = 'center';
+                    addToPaletteBtn.style.padding = '0';
+                    addToPaletteBtn.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    `;
+                    
+                    // Show button on hover over container
+                    resultContainer.addEventListener('mouseenter', () => {
+                        addToPaletteBtn.style.display = 'flex';
+                        addToPaletteBtn.style.alignItems = 'center';
+                        addToPaletteBtn.style.justifyContent = 'center';
+                    });
+                    resultContainer.addEventListener('mouseleave', () => {
+                        addToPaletteBtn.style.display = 'none';
+                    });
+                    
+                    // Handle click to add to palette
+                    addToPaletteBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        
+                        if (!addColorToPalette) {
+                            console.error('addColorToPalette not available');
+                            return;
+                        }
+                        
+                        // Create color object for the result
+                        const resultColor = {
+                            hex: resultHex,
+                            r: resultR,
+                            g: resultG,
+                            b: resultB,
+                            name: `Mix: ${pair.color1.name || pair.color1.hex} + ${pair.color2.name || pair.color2.hex}`,
+                            type: [],
+                            producer: 'Mixed'
+                        };
+                        
+                        // Add color to palette
+                        if (addColorToPalette(resultColor)) {
+                            // Create mixing scheme (50/50 mix)
+                            const mixingScheme = {
+                                colors: [pair.color1, pair.color2],
+                                coefficients: [1, 1], // 50/50 mix (normalized to 1:1)
+                                resultHex: resultHex
+                            };
+                            
+                            // Save mixing scheme
+                            const { saveMixingScheme } = await import('../features/planning.js');
+                            if (saveMixingScheme) {
+                                saveMixingScheme(resultHex, mixingScheme);
+                            }
+                        }
+                    });
+                        
+                        resultContainer.appendChild(addToPaletteBtn);
+                    }
+                    
+                    resultCell.appendChild(resultContainer);
                 }
             } catch (error) {
                 console.error('Error mixing colors:', error, rgb1, rgb2);
@@ -214,6 +308,61 @@ export function loadMixingTable(filterContainerId = null) {
         row.appendChild(resultCell);
         tbody.appendChild(row);
     });
+    
+    // Add footer with icon legend
+    const tfoot = mixingTable.querySelector('tfoot');
+    if (tfoot) {
+        tfoot.remove();
+    }
+    const newTfoot = document.createElement('tfoot');
+    const footerRow = document.createElement('tr');
+    const footerCell = document.createElement('td');
+    footerCell.colSpan = 3; // Color 1, Color 2, Result
+    footerCell.style.textAlign = 'left';
+    footerCell.style.padding = '15px';
+    footerCell.style.background = '#f8f9fa';
+    footerCell.style.borderTop = '2px solid #e0e0e0';
+    footerCell.style.fontSize = '0.9rem';
+    footerCell.style.color = '#666';
+    
+    const legendContainer = document.createElement('div');
+    legendContainer.style.display = 'flex';
+    legendContainer.style.alignItems = 'center';
+    legendContainer.style.gap = '20px';
+    
+    // Add "+" icon legend
+    const addIconLegend = document.createElement('div');
+    addIconLegend.style.display = 'flex';
+    addIconLegend.style.alignItems = 'center';
+    addIconLegend.style.gap = '8px';
+    
+    const addIconLegendCircle = document.createElement('div');
+    addIconLegendCircle.style.width = '28px';
+    addIconLegendCircle.style.height = '28px';
+    addIconLegendCircle.style.borderRadius = '50%';
+    addIconLegendCircle.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+    addIconLegendCircle.style.display = 'flex';
+    addIconLegendCircle.style.alignItems = 'center';
+    addIconLegendCircle.style.justifyContent = 'center';
+    addIconLegendCircle.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    `;
+    
+    addIconLegend.appendChild(addIconLegendCircle);
+    
+    const addIconText = document.createElement('span');
+    addIconText.textContent = 'Add color to Palette with mixing formula';
+    addIconLegend.appendChild(addIconText);
+    
+    legendContainer.appendChild(addIconLegend);
+    
+    footerCell.appendChild(legendContainer);
+    footerRow.appendChild(footerCell);
+    newTfoot.appendChild(footerRow);
+    mixingTable.appendChild(newTfoot);
 }
 
 // Custom Mix functionality
@@ -306,11 +455,12 @@ function calculateMixResult(activeColors, activeWeights) {
     return [currentRgb.r, currentRgb.g, currentRgb.b];
 }
 
-// Open custom mix modal with pre-filled colors (for Planning tab)
+    // Open custom mix modal with pre-filled colors (for Planning tab)
 export function openCustomMixModalWithColors(paletteColor, candidate1, candidate2, fromAll) {
     const customMixModal = document.getElementById('customMixModal');
     const paletteColorBox = document.getElementById('customMixPaletteColorBox');
     const useMixBtn = document.getElementById('useMixBtn');
+    const addToPaletteBtn = document.getElementById('addToPaletteBtn');
     
     if (!customMixModal) return;
     
@@ -323,6 +473,11 @@ export function openCustomMixModalWithColors(paletteColor, candidate1, candidate
         paletteColorBox.style.backgroundColor = paletteColor.hex;
     } else if (paletteColorBox) {
         paletteColorBox.style.display = 'none';
+    }
+    
+    // Hide "Add to Palette" button when opened from Planning tab
+    if (addToPaletteBtn) {
+        addToPaletteBtn.style.display = 'none';
     }
     
     // Show "Use" button when opened from Planning tab
@@ -367,6 +522,7 @@ export function openCustomMixModalWithScheme(paletteColor, mixingScheme) {
     const customMixModal = document.getElementById('customMixModal');
     const paletteColorBox = document.getElementById('customMixPaletteColorBox');
     const useMixBtn = document.getElementById('useMixBtn');
+    const addToPaletteBtn = document.getElementById('addToPaletteBtn');
     
     if (!customMixModal || !mixingScheme) return;
     
@@ -379,6 +535,11 @@ export function openCustomMixModalWithScheme(paletteColor, mixingScheme) {
         paletteColorBox.style.backgroundColor = paletteColor.hex;
     } else if (paletteColorBox) {
         paletteColorBox.style.display = 'none';
+    }
+    
+    // Hide "Add to Palette" button when opened from Planning tab
+    if (addToPaletteBtn) {
+        addToPaletteBtn.style.display = 'none';
     }
     
     // Show "Use" button when opened from Planning tab
@@ -433,6 +594,7 @@ function initCustomMixModal() {
     
     // Open custom mix modal
     const useMixBtn = document.getElementById('useMixBtn');
+    const addToPaletteBtn = document.getElementById('addToPaletteBtn');
     
     if (customMixBtn) {
         customMixBtn.addEventListener('click', () => {
@@ -444,6 +606,11 @@ function initCustomMixModal() {
                 // Hide "Use" button for regular mixing
                 if (useMixBtn) {
                     useMixBtn.style.display = 'none';
+                }
+                // Show "Add to Palette" button for Mixing Color tab
+                if (addToPaletteBtn) {
+                    addToPaletteBtn.style.display = 'block';
+                    addToPaletteBtn.disabled = true; // Initially disabled until colors are added
                 }
                 currentPaletteColor = null;
                 // Reset all colors
@@ -515,6 +682,89 @@ function initCustomMixModal() {
             }).catch(err => {
                 console.error('Error saving mixing scheme:', err);
             });
+        });
+    }
+    
+    // Handle "Add to Palette" button click
+    if (addToPaletteBtn) {
+        addToPaletteBtn.addEventListener('click', async () => {
+            if (!addColorToPalette) {
+                console.error('addColorToPalette not available');
+                return;
+            }
+            
+            // Get active colors and weights
+            const activeColors = [];
+            const activeWeights = [];
+            for (let i = 0; i < selectedColors.length; i++) {
+                if (selectedColors[i] !== null) {
+                    activeColors.push(selectedColors[i]);
+                    activeWeights.push(colorWeights[i]);
+                }
+            }
+            
+            if (activeColors.length === 0) {
+                return; // Button should be disabled, but check anyway
+            }
+            
+            // Normalize coefficients by dividing by GCD
+            const normalizedWeights = normalizeCoefficients(activeWeights);
+            
+            // Calculate result color
+            const resultRgb = calculateMixResult(activeColors, activeWeights);
+            const resultR = Math.round(resultRgb[0]);
+            const resultG = Math.round(resultRgb[1]);
+            const resultB = Math.round(resultRgb[2]);
+            const resultHex = rgbToHex(resultR, resultG, resultB);
+            
+            // Create color object for the result
+            const colorNames = activeColors.map(c => c.name || c.hex).join(' + ');
+            const resultColor = {
+                hex: resultHex,
+                r: resultR,
+                g: resultG,
+                b: resultB,
+                name: `Mix: ${colorNames}`,
+                type: [],
+                producer: 'Mixed'
+            };
+            
+            // Add color to palette
+            if (addColorToPalette(resultColor)) {
+                // Create mixing scheme
+                const mixingScheme = {
+                    colors: activeColors,
+                    coefficients: normalizedWeights,
+                    resultHex: resultHex
+                };
+                
+                // Save mixing scheme
+                const { saveMixingScheme } = await import('./planning.js');
+                if (saveMixingScheme) {
+                    saveMixingScheme(resultHex, mixingScheme);
+                }
+                
+                // Close modal
+                if (customMixModal) {
+                    customMixModal.classList.remove('active');
+                    if (window.ungreyOtherWheels) {
+                        window.ungreyOtherWheels();
+                    }
+                }
+                
+                // Reset all colors
+                selectedColors.fill(null);
+                colorWeights.fill(1);
+                if (updateCustomMixDisplay) {
+                    updateCustomMixDisplay();
+                }
+                if (updateResultColor) {
+                    updateResultColor();
+                }
+                
+                // Reload mixing table to show the new color in the palette
+                loadMixingTable('mixingFilters');
+            }
         });
     }
     
@@ -670,6 +920,13 @@ function initCustomMixModal() {
                 activeColors.push(selectedColors[i]);
                 activeWeights.push(colorWeights[i]);
             }
+        }
+        
+        // Update "Add to Palette" button state (before early return)
+        const addToPaletteBtn = document.getElementById('addToPaletteBtn');
+        if (addToPaletteBtn && addToPaletteBtn.style.display !== 'none') {
+            // Enable button only if at least one color is added
+            addToPaletteBtn.disabled = activeColors.length === 0;
         }
         
         if (activeColors.length === 0) {
@@ -961,6 +1218,10 @@ function initCustomMixModal() {
 
 // Initialize mixing feature
 export function initMixing(dependencies = {}) {
+    if (dependencies.addColorToPalette) {
+        addColorToPalette = dependencies.addColorToPalette;
+    }
+    
     // Load initial mixing table
     loadMixingTable('mixingFilters');
     

@@ -5,6 +5,7 @@
 import { loadMyCollection, loadShoppingCart, loadSortOrder, 
          loadPaletteValueMiddle, loadPaletteValueRange, 
          loadCollectionValueMiddle, loadCollectionValueRange,
+         loadPaintColorsValueMiddle, loadPaintColorsValueRange,
          loadModels, loadCurrentModelId, saveCurrentModelId, saveModels } from '../utils/storage.js';
 import { generateUUID } from '../utils/uuid.js';
 
@@ -30,9 +31,9 @@ export const state = {
     sortOrder: 'hsv',
     
     // Color wheel settings
-    paletteValueMiddle: 50,
+    paletteValueMiddle: 100,
     paletteValueRange: 100,
-    collectionValueMiddle: 50,
+    collectionValueMiddle: 100,
     collectionValueRange: 100,
     
     // Canvas context
@@ -61,7 +62,7 @@ export const state = {
     paintColorsWheelCenterY: 0,
     paintColorsWheelRadius: 0,
     paintColorsPointPositions: [],
-    paintColorsValueMiddle: 50,
+    paintColorsValueMiddle: 100,
     paintColorsValueRange: 100,
     
     // Merged paint colors
@@ -107,6 +108,8 @@ export function initState() {
     state.paletteValueRange = loadPaletteValueRange();
     state.collectionValueMiddle = loadCollectionValueMiddle();
     state.collectionValueRange = loadCollectionValueRange();
+    state.paintColorsValueMiddle = loadPaintColorsValueMiddle();
+    state.paintColorsValueRange = loadPaintColorsValueRange();
     
     // Initialize canvas context
     const imageCanvas = document.getElementById('imageCanvas');

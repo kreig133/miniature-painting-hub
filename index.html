@@ -92,8 +92,53 @@
                     <input type="file" id="imageUpload" accept="image/*" hidden>
                 </div>
 
+                <div class="current-color" id="currentColorSection" style="display: none;">
+                    <div class="filter-container" id="selectedColorFilters" style="display: none;">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <div class="current-color-content">
+                        <div class="color-preview-wrapper">
+                            <div class="color-preview" id="colorPreview"></div>
+                            <div class="closest-matches" id="closestMatchesSection">
+                                <div class="match-item">
+                                    <label>Palette 1</label>
+                                    <div class="match-color-box" id="palette1Color"></div>
+                                </div>
+                                <div class="match-item">
+                                    <label>Palette 2</label>
+                                    <div class="match-color-box" id="palette2Color"></div>
+                                </div>
+                                <div class="match-item">
+                                    <label>Collection 1</label>
+                                    <div class="match-color-box" id="collection1Color"></div>
+                                </div>
+                                <div class="match-item">
+                                    <label>Collection 2</label>
+                                    <div class="match-color-box" id="collection2Color"></div>
+                                </div>
+                                <div class="match-item">
+                                    <label>From All</label>
+                                    <div class="match-color-box" id="fromAllColor"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="color-info-column">
+                            <div class="color-value">
+                                <label>HEX:</label>
+                                <input type="text" id="hexValue" readonly>
+                            </div>
+                            <div class="color-value">
+                                <label>RGB:</label>
+                                <input type="text" id="rgbValue" readonly>
+                            </div>
+                        </div>
+                        <button class="save-btn" id="saveColorBtn">Save</button>
+                    </div>
+                </div>
+
                 <div class="image-section" id="imageSection" style="display: none;">
                     <div class="canvas-container">
+                        <button class="close-image-btn" id="closeImageBtn" type="button" title="Close image">&times;</button>
                         <canvas id="imageCanvas"></canvas>
                         <div class="magnifying-glass" id="imageMagnifyingGlass">
                             <canvas id="imageMagnifyingGlassCanvas"></canvas>
@@ -103,54 +148,6 @@
                     <div class="instructions">
                         <p>Click anywhere on the image to pick a color</p>
                     </div>
-                </div>
-
-                <div class="current-color" id="currentColorSection" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 style="margin: 0;">Selected Color</h3>
-                        <button class="filter-toggle-btn" id="selectedColorFilterBtn">Filter</button>
-                    </div>
-                    <div class="filter-container" id="selectedColorFilters" style="display: none;">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                    <div class="color-preview-wrapper">
-                        <div class="color-preview" id="colorPreview"></div>
-                        <div class="closest-matches" id="closestMatchesSection">
-                            <div class="match-item">
-                                <label>Palette 1</label>
-                                <div class="match-color-box" id="palette1Color"></div>
-                            </div>
-                            <div class="match-item">
-                                <label>Palette 2</label>
-                                <div class="match-color-box" id="palette2Color"></div>
-                            </div>
-                            <div class="match-item">
-                                <label>Collection 1</label>
-                                <div class="match-color-box" id="collection1Color"></div>
-                            </div>
-                            <div class="match-item">
-                                <label>Collection 2</label>
-                                <div class="match-color-box" id="collection2Color"></div>
-                            </div>
-                            <div class="match-item">
-                                <label>From All</label>
-                                <div class="match-color-box" id="fromAllColor"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="color-info">
-                        <div class="color-value">
-                            <label>HEX:</label>
-                            <input type="text" id="hexValue" readonly>
-                            <button class="copy-btn" data-copy="hex">Copy</button>
-                        </div>
-                        <div class="color-value">
-                            <label>RGB:</label>
-                            <input type="text" id="rgbValue" readonly>
-                            <button class="copy-btn" data-copy="rgb">Copy</button>
-                        </div>
-                    </div>
-                    <button class="save-btn" id="saveColorBtn">Save to Palette</button>
                 </div>
 
                 <div class="palette-section-wrapper">
@@ -360,6 +357,7 @@
                         <h2>Custom Mix</h2>
                         <div class="custom-mix-header-buttons">
                             <button class="use-mix-btn" id="useMixBtn" type="button" style="display: none;">Use</button>
+                            <button class="add-to-palette-btn" id="addToPaletteBtn" type="button" style="display: none;" disabled>Add to Palette</button>
                             <button id="closeCustomMixModal" type="button" class="close-custom-mix-btn">&times;</button>
                         </div>
                     </div>
@@ -672,14 +670,14 @@
                 </div>
                 <div class="wheel-controls">
                     <div class="slider-control">
-                        <label for="colorSelectValueSlider">Value:</label>
-                        <input type="range" id="colorSelectValueSlider" min="0" max="100" value="50" class="value-slider">
-                        <span id="colorSelectValueDisplay">50</span>
+                        <label for="colorSelectValueSlider">Brightness:</label>
+                        <input type="range" id="colorSelectValueSlider" min="0" max="100" value="100" class="value-slider">
+                        <span id="colorSelectValueDisplay">100</span>
                     </div>
                     <div class="slider-control">
                         <label for="colorSelectRangeSlider">Range:</label>
                         <input type="range" id="colorSelectRangeSlider" min="0" max="100" value="100" class="range-slider">
-                        <span id="colorSelectRangeDisplay">100</span>
+                        <span id="colorSelectRangeDisplay">All</span>
                     </div>
                 </div>
             </div>
@@ -700,14 +698,14 @@
                 </div>
                 <div class="wheel-controls">
                     <div class="slider-control">
-                        <label for="paletteValueSlider">Value:</label>
-                        <input type="range" id="paletteValueSlider" min="0" max="100" value="50" class="value-slider">
-                        <span id="paletteValueDisplay">50</span>
+                        <label for="paletteValueSlider">Brightness:</label>
+                        <input type="range" id="paletteValueSlider" min="0" max="100" value="100" class="value-slider">
+                        <span id="paletteValueDisplay">100</span>
                     </div>
                     <div class="slider-control">
                         <label for="paletteRangeSlider">Range:</label>
                         <input type="range" id="paletteRangeSlider" min="0" max="100" value="100" class="range-slider">
-                        <span id="paletteRangeDisplay">100</span>
+                        <span id="paletteRangeDisplay">All</span>
                     </div>
                 </div>
             </div>
@@ -729,14 +727,14 @@
                 </div>
                 <div class="wheel-controls">
                     <div class="slider-control">
-                        <label for="collectionValueSlider">Value:</label>
-                        <input type="range" id="collectionValueSlider" min="0" max="100" value="50" class="value-slider">
-                        <span id="collectionValueDisplay">50</span>
+                        <label for="collectionValueSlider">Brightness:</label>
+                        <input type="range" id="collectionValueSlider" min="0" max="100" value="100" class="value-slider">
+                        <span id="collectionValueDisplay">100</span>
                     </div>
                     <div class="slider-control">
                         <label for="collectionRangeSlider">Range:</label>
                         <input type="range" id="collectionRangeSlider" min="0" max="100" value="100" class="range-slider">
-                        <span id="collectionRangeDisplay">100</span>
+                        <span id="collectionRangeDisplay">All</span>
                     </div>
                 </div>
             </div>
@@ -758,14 +756,14 @@
                 </div>
                 <div class="wheel-controls">
                     <div class="slider-control">
-                        <label for="paintColorsValueSlider">Value:</label>
-                        <input type="range" id="paintColorsValueSlider" min="0" max="100" value="50" class="value-slider">
-                        <span id="paintColorsValueDisplay">50</span>
+                        <label for="paintColorsValueSlider">Brightness:</label>
+                        <input type="range" id="paintColorsValueSlider" min="0" max="100" value="100" class="value-slider">
+                        <span id="paintColorsValueDisplay">100</span>
                     </div>
                     <div class="slider-control">
                         <label for="paintColorsRangeSlider">Range:</label>
                         <input type="range" id="paintColorsRangeSlider" min="0" max="100" value="100" class="range-slider">
-                        <span id="paintColorsRangeDisplay">100</span>
+                        <span id="paintColorsRangeDisplay">All</span>
                     </div>
                 </div>
             </div>
@@ -809,9 +807,9 @@
                     <canvas id="planningAddColorWheelCanvas"></canvas>
                 </div>
                 <div class="planning-value-slider-container">
-                    <label for="planningValueSlider">Value:</label>
-                    <input type="range" id="planningValueSlider" min="0" max="100" value="50" class="value-slider">
-                    <span id="planningValueDisplay">50</span>
+                    <label for="planningValueSlider">Brightness:</label>
+                    <input type="range" id="planningValueSlider" min="0" max="100" value="100" class="value-slider">
+                    <span id="planningValueDisplay">100</span>
                 </div>
                 <div class="planning-color-preview-container">
                     <div class="planning-color-preview" id="planningColorPreview"></div>

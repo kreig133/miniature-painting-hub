@@ -61,7 +61,7 @@ export function savePaletteValueMiddle(value) {
 
 export function loadPaletteValueMiddle() {
     const value = parseFloat(localStorage.getItem('paletteValueMiddle'));
-    return isNaN(value) ? 50 : value;
+    return isNaN(value) ? 100 : value;
 }
 
 export function savePaletteValueRange(value) {
@@ -79,7 +79,7 @@ export function saveCollectionValueMiddle(value) {
 
 export function loadCollectionValueMiddle() {
     const value = parseFloat(localStorage.getItem('collectionValueMiddle'));
-    return isNaN(value) ? 50 : value;
+    return isNaN(value) ? 100 : value;
 }
 
 export function saveCollectionValueRange(value) {
@@ -88,6 +88,16 @@ export function saveCollectionValueRange(value) {
 
 export function loadCollectionValueRange() {
     const value = parseFloat(localStorage.getItem('collectionValueRange'));
+    return isNaN(value) ? 100 : value;
+}
+
+export function loadPaintColorsValueMiddle() {
+    const value = parseFloat(localStorage.getItem('paintColorsValueMiddle'));
+    return isNaN(value) ? 100 : value;
+}
+
+export function loadPaintColorsValueRange() {
+    const value = parseFloat(localStorage.getItem('paintColorsValueRange'));
     return isNaN(value) ? 100 : value;
 }
 

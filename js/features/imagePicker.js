@@ -71,6 +71,31 @@ export function initImagePicker(dependencies = {}) {
         imageMagnifyingCanvas.height = 120;
     }
     
+    // Close image button handler
+    const closeImageBtn = document.getElementById('closeImageBtn');
+    if (closeImageBtn) {
+        closeImageBtn.addEventListener('click', () => {
+            if (imageSection) {
+                imageSection.style.display = 'none';
+            }
+            // Show upload section when image is closed
+            const uploadSection = document.querySelector('.upload-section');
+            if (uploadSection) {
+                uploadSection.style.display = 'flex';
+            }
+            // Clear canvas
+            if (imageCanvas && ctx) {
+                ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+                imageCanvas.width = 0;
+                imageCanvas.height = 0;
+            }
+            // Hide current color section if visible
+            if (currentColorSection) {
+                currentColorSection.style.display = 'none';
+            }
+        });
+    }
+    
     // Set up dependencies
     if (dependencies.updateClosestMatches) {
         updateClosestMatches = dependencies.updateClosestMatches;
@@ -151,6 +176,11 @@ export function initImagePicker(dependencies = {}) {
                         if (imageSection) {
                             imageSection.style.display = 'block';
                         }
+                        // Hide upload section when image is shown
+                        const uploadSection = document.querySelector('.upload-section');
+                        if (uploadSection) {
+                            uploadSection.style.display = 'none';
+                        }
                     };
                     img.src = event.target.result;
                 };
@@ -191,6 +221,11 @@ export function loadImageFromDataUrl(dataUrl) {
         ctx.drawImage(img, 0, 0, width, height);
         if (imageSection) {
             imageSection.style.display = 'block';
+        }
+        // Hide upload section when image is shown
+        const uploadSection = document.querySelector('.upload-section');
+        if (uploadSection) {
+            uploadSection.style.display = 'none';
         }
     };
     img.src = dataUrl;

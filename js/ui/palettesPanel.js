@@ -2,7 +2,7 @@
  * Palettes Panel UI component - manages the foldable palette list panel
  */
 
-import { state, getModels, setCurrentModelId, getCurrentModelId, addModel, removeModel, getPalette, getCurrentModel, updateCurrentModel } from '../core/state.js';
+import { state, getModels, setCurrentModelId, getCurrentModelId, addModel, removeModel, getPalette, getCurrentModel, updateCurrentModel, setModels } from '../core/state.js';
 import { saveModelsPanelWidth, loadModelsPanelWidth } from '../utils/storage.js';
 import { generateUUID } from '../utils/uuid.js';
 import { saveImage, getImage, deleteImage, getImages } from '../utils/imageStorage.js';
@@ -777,18 +777,18 @@ export function switchToPalette(modelId) {
 function showRenameModal(modelId, currentName) {
     const newName = prompt('Enter new model name:', currentName);
     if (newName !== null && newName.trim() !== '') {
-        renamePalette(modelId, newName.trim());
+        renameModel(modelId, newName.trim());
     }
 }
 
 // Rename a model
-function renamePalette(modelId, newName) {
+function renameModel(modelId, newName) {
     if (!newName || newName.trim() === '') return;
     
     const models = getModels();
     if (models[modelId]) {
         models[modelId].model_name = newName.trim();
-        updateCurrentModel({ model_name: newName.trim() });
+        setModels(models); // Save the updated models object
         
         // Update UI
         loadPalettesList();
