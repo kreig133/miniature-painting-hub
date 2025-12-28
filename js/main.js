@@ -3,7 +3,7 @@
  * This file orchestrates all modules and features
  */
 
-import { initState, state, setPalette, setSortOrder, getCurrentColor } from './core/state.js';
+import { initState, state, setSortOrder, getCurrentColor } from './core/state.js';
 import { saveSortOrder } from './utils/storage.js';
 import { generateSplitGradient } from './utils/colorUtils.js';
 import { addHoverTooltipToColorBox } from './utils/domUtils.js';
@@ -14,7 +14,7 @@ import { initAddColorModal } from './ui/modals.js';
 import { initPalettesPanel, loadPalettesList } from './ui/palettesPanel.js';
 
 // Features
-import { initPalette, loadPalette, sortPaletteByHSV, savePalette, addColorToPalette, updatePaletteName } from './features/palette.js';
+import { initPalette, loadPalette, sortPaletteByHSV, addColorToPalette, updatePaletteName, getPalette } from './features/palette.js';
 import { initImagePicker, updateClosestMatchesDisplay, displayCurrentColor } from './features/imagePicker.js';
 import { initMyCollection, loadMyCollection, addToMyCollection, updateHeaderCount, notifyEffectiveCollectionChanged } from './features/myCollection.js';
 import { initShopping, loadShoppingCart, addToShoppingCart } from './features/shopping.js';
@@ -55,12 +55,12 @@ export function init() {
     // 1. Initialize state from localStorage
     initState();
     
-    // 2. Sort current palette with saved sort order on load (if we have palettes)
-    if (state.currentPaletteId && state.palettes[state.currentPaletteId]) {
-        const currentPaletteColors = state.palettes[state.currentPaletteId].colors || [];
-        const sortedPalette = sortPaletteByHSV(currentPaletteColors, state.sortOrder);
-        setPalette(sortedPalette);
-        savePalette();
+    // 2. Sort current palette with saved sort order on load (if we have models)
+    const palette = getPalette();
+    if (palette.length > 0) {
+        const sortedPalette = sortPaletteByHSV(palette, state.sortOrder);
+        // Update palette - colors need to be updated in the model structure
+        // This will be handled by palette.js functions
     }
     
     // 3. Merge paint colors data (must happen before filters)
@@ -179,7 +179,6 @@ export function init() {
         saveSortOrder,
         setSortOrder,
         sortPaletteByHSV,
-        savePalette,
         loadPalette,
         addColorToPalette
     });
@@ -208,7 +207,6 @@ export function init() {
         saveSortOrder,
         setSortOrder,
         sortPaletteByHSV,
-        savePalette,
         loadPalette
     });
     

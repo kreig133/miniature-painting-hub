@@ -2,8 +2,8 @@
  * Color Card feature - generates color card with image from Palette Editor or References
  */
 
-import { getCurrentPaletteId, getPalette, getPlanningMappings, getMyCollection, getShoppingCart } from '../core/state.js';
-import { loadModelImages } from '../utils/storage.js';
+import { getCurrentModelId, getCurrentModel, getPalette, getPalleteWithMappings, getMyCollection, getShoppingCart, getColorMapping } from '../core/state.js';
+import { getImage } from '../utils/imageStorage.js';
 import { addGradientClickToColorBox } from '../utils/colorUtils.js';
 import { addHoverTooltipToColorBox } from '../utils/domUtils.js';
 
@@ -28,9 +28,22 @@ let rightOverlayPaddingPercent = 25; // Default slider position (10% of smallest
 let rightOverlayListScale = 100; // Default scale 100%
 
 // Helper functions (matching planning.js)
+// Check if mapping is a MixingSchemeObject
+function isMixingScheme(mapping) {
+    return mapping && typeof mapping === 'object' && Array.isArray(mapping.colors) && Array.isArray(mapping.coefficients);
+}
+
+// Check if mapping is a PaintObject
+function isPaintObject(mapping) {
+    return mapping && typeof mapping === 'object' && mapping.hex && !Array.isArray(mapping.colors);
+}
+
 function getAssignedPaintFromMapping(mapping) {
     if (!mapping) return null;
-    return mapping.candidate1 || mapping.candidate2 || mapping.fromAll || null;
+    // If it's a mixing scheme, return null (handled separately)
+    if (isMixingScheme(mapping)) return null;
+    // Otherwise it's a paint object
+    return mapping;
 }
 
 function isInMyCollection(paint) {
@@ -71,29 +84,19 @@ function getImageFromCanvas() {
 }
 
 // Get first image from references
-function getFirstReferenceImage() {
-    const currentId = getCurrentPaletteId();
-    if (!currentId) return null;
+async function getFirstReferenceImage() {
+    const model = getCurrentModel();
+    if (!model || !model.references || model.references.length === 0) return null;
     
-    const images = loadModelImages(currentId);
-    if (images.length === 0) return null;
-    
-    // Return first image's dataUrl
-    return images[0].dataUrl;
+    // Get first image from IndexedDB
+    const image = await getImage(model.references[0]);
+    return image ? image.dataUrl : null;
 }
 
 // Get assigned paint for a color
 function getAssignedPaint(colorHex) {
-    const currentId = getCurrentPaletteId();
-    if (!currentId) return null;
-    
-    const mappings = getPlanningMappings();
-    if (!mappings[currentId] || !mappings[currentId][colorHex]) {
-        return null;
-    }
-    
-    const mapping = mappings[currentId][colorHex];
-    return mapping.candidate1 || mapping.candidate2 || mapping.fromAll || null;
+    const mapping = getColorMapping(colorHex);
+    return getAssignedPaintFromMapping(mapping);
 }
 
 // Calculate optimal image size for given rotation to maximize available space
@@ -356,8 +359,7 @@ function updateRightOverlay() {
     
     // Get palette and mappings
     const palette = getPalette();
-    const currentId = getCurrentPaletteId();
-    const mappings = getPlanningMappings();
+    const mappings = getPalleteWithMappings();
     
     // Clear overlay content
     overlay.innerHTML = '';
@@ -377,11 +379,10 @@ function updateRightOverlay() {
     
     // Add all palette colors with their mappings
     if (palette && palette.length > 0) {
-        const paletteMappings = mappings && mappings[currentId] ? mappings[currentId] : {};
-        
         palette.forEach(color => {
             const colorHex = color.hex;
-            const mapping = paletteMappings[colorHex];
+            const mappingItem = mappings[colorHex];
+            const mapping = mappingItem ? mappingItem.mapping : null;
             
             const listItem = document.createElement('div');
             listItem.className = 'right-overlay-item';
@@ -391,7 +392,7 @@ function updateRightOverlay() {
             listItem.style.borderRadius = `${6 * scaleFactor}px`;
             
             const assignedPaint = getAssignedPaintFromMapping(mapping);
-            const mixingScheme = mapping?.mixingScheme;
+            const mixingScheme = isMixingScheme(mapping) ? mapping : null;
             
             if (assignedPaint || (mixingScheme && mixingScheme.resultHex)) {
                 const container = document.createElement('div');
@@ -609,7 +610,7 @@ function updateRightOverlay() {
 }
 
 // Open color card modal
-function openColorCardModal() {
+async function openColorCardModal() {
     const modal = document.getElementById('colorCardModal');
     const modalBody = document.getElementById('colorCardModalBody');
     
@@ -624,7 +625,7 @@ function openColorCardModal() {
     
     // If no canvas image, try references
     if (!imageDataUrl) {
-        imageDataUrl = getFirstReferenceImage();
+        imageDataUrl = await getFirstReferenceImage();
     }
     
     const imagesContainer = modalBody.querySelector('.color-card-images-container');
@@ -984,9 +985,11 @@ async function exportColorCardToPDF() {
             removeContainer: false
         };
         
-        // Capture sequentially to reduce load (was causing issues in parallel)
-        const leftCanvas = await html2canvas(leftContainer, captureOptions);
-        const rightCanvas = await html2canvas(rightContainer, captureOptions);
+        // Capture in parallel for better performance
+        const [leftCanvas, rightCanvas] = await Promise.all([
+            html2canvas(leftContainer, captureOptions),
+            html2canvas(rightContainer, captureOptions)
+        ]);
         
         // Create PDF - each image on its own page
         // Determine orientation based on image dimensions

@@ -2,23 +2,20 @@
  * Application state management
  */
 
-import { loadPalette, loadMyCollection, loadShoppingCart, loadSortOrder, 
+import { loadMyCollection, loadShoppingCart, loadSortOrder, 
          loadPaletteValueMiddle, loadPaletteValueRange, 
          loadCollectionValueMiddle, loadCollectionValueRange,
-         loadPalettes, loadCurrentPaletteId, saveCurrentPaletteId,
-         loadPlanningMappings } from '../utils/storage.js';
+         loadModels, loadCurrentModelId, saveCurrentModelId, saveModels } from '../utils/storage.js';
+import { generateUUID } from '../utils/uuid.js';
 
 // Application state
 export const state = {
     // Current selected color
     currentColor: null,
     
-    // Multiple palettes
-    palettes: {}, // Object: { paletteId: { id, name, colors: [] } }
-    currentPaletteId: null,
-    
-    // Current palette (derived from currentPaletteId)
-    palette: [],
+    // Models: { model_id: { model_id, model_name, model_image, pallete_with_mappings, references } }
+    models: {},
+    currentModelId: null,
     
     // My Collection
     myCollection: [],
@@ -26,15 +23,11 @@ export const state = {
     // Shopping cart
     shoppingCart: [],
     
-    // Planning mappings: { paletteId: { colorHex: { candidate1: {...}, candidate2: {...}, fromAll: {...} } } }
-    planningMappings: {},
-    
     // Planning mode: 'edit' or 'view'
     planningMode: 'edit',
     
     // Sort order
     sortOrder: 'hsv',
-    
     
     // Color wheel settings
     paletteValueMiddle: 50,
@@ -77,47 +70,38 @@ export const state = {
 
 // Initialize state from localStorage
 export function initState() {
-    // Load multiple palettes
-    state.palettes = loadPalettes();
-    state.currentPaletteId = loadCurrentPaletteId();
+    // Load models
+    state.models = loadModels();
+    state.currentModelId = loadCurrentModelId();
     
-    // If no palettes exist, create a default one
-    if (!state.palettes || Object.keys(state.palettes).length === 0) {
-        const defaultId = 'palette_' + Date.now();
-        state.palettes = {
+    // If no models exist, create a default one
+    if (!state.models || Object.keys(state.models).length === 0) {
+        const defaultId = 'model_' + generateUUID();
+        state.models = {
             [defaultId]: {
-                id: defaultId,
-                name: 'Model 1',
-                colors: []
+                model_id: defaultId,
+                model_name: 'Model 1',
+                model_image: null,
+                pallete_with_mappings: {},
+                references: []
             }
         };
-        state.currentPaletteId = defaultId;
-    }
-    
-    // If currentPaletteId doesn't exist or is invalid, use the first one
-    if (!state.currentPaletteId || !state.palettes[state.currentPaletteId]) {
-        const paletteKeys = Object.keys(state.palettes);
-        if (paletteKeys.length > 0) {
-            state.currentPaletteId = paletteKeys[0];
-        }
-    }
-    
-    // Set current palette from palettes - make sure we have a valid reference
-    if (state.currentPaletteId && state.palettes[state.currentPaletteId]) {
-        const paletteColors = state.palettes[state.currentPaletteId].colors;
-        state.palette = Array.isArray(paletteColors) ? [...paletteColors] : [];
+        state.currentModelId = defaultId;
+        saveModels(state.models);
+        saveCurrentModelId(defaultId);
     } else {
-        state.palette = [];
-    }
-    
-    // Save current palette ID if it was missing
-    if (state.currentPaletteId) {
-        saveCurrentPaletteId(state.currentPaletteId);
+        // If currentModelId doesn't exist or is invalid, use the first one
+        if (!state.currentModelId || !state.models[state.currentModelId]) {
+            const modelKeys = Object.keys(state.models);
+            if (modelKeys.length > 0) {
+                state.currentModelId = modelKeys[0];
+                saveCurrentModelId(state.currentModelId);
+            }
+        }
     }
     
     state.myCollection = loadMyCollection();
     state.shoppingCart = loadShoppingCart();
-    state.planningMappings = loadPlanningMappings();
     state.sortOrder = loadSortOrder();
     state.paletteValueMiddle = loadPaletteValueMiddle();
     state.paletteValueRange = loadPaletteValueRange();
@@ -136,8 +120,13 @@ export function getCurrentColor() {
     return state.currentColor;
 }
 
+// Get current model's palette (colors from pallete_with_mappings)
 export function getPalette() {
-    return state.palette;
+    if (!state.currentModelId || !state.models[state.currentModelId]) {
+        return [];
+    }
+    const model = state.models[state.currentModelId];
+    return Object.values(model.pallete_with_mappings).map(item => item.color);
 }
 
 export function getMyCollection() {
@@ -152,12 +141,18 @@ export function setShoppingCart(cart) {
     state.shoppingCart = cart;
 }
 
-export function getPlanningMappings() {
-    return state.planningMappings;
+// Get current model's palette with mappings
+export function getPalleteWithMappings() {
+    if (!state.currentModelId || !state.models[state.currentModelId]) {
+        return {};
+    }
+    return state.models[state.currentModelId].pallete_with_mappings;
 }
 
-export function setPlanningMappings(mappings) {
-    state.planningMappings = mappings;
+// Get mapping for a specific color
+export function getColorMapping(colorHex) {
+    const mappings = getPalleteWithMappings();
+    return mappings[colorHex]?.mapping || null;
 }
 
 export function getPlanningMode() {
@@ -204,42 +199,167 @@ export function setCurrentColor(color) {
     state.currentColor = color;
 }
 
-export function setPalette(palette) {
-    // Create a copy to avoid reference issues
-    state.palette = Array.isArray(palette) ? [...palette] : [];
-    // Also update the current palette in palettes object
-    if (state.currentPaletteId && state.palettes[state.currentPaletteId]) {
-        state.palettes[state.currentPaletteId].colors = Array.isArray(palette) ? [...palette] : [];
+// Get current model ID
+export function getCurrentModelId() {
+    return state.currentModelId;
+}
+
+// Set current model ID
+export function setCurrentModelId(modelId) {
+    if (state.models && state.models[modelId]) {
+        state.currentModelId = modelId;
+        saveCurrentModelId(modelId);
     }
 }
 
-export function getCurrentPaletteId() {
-    return state.currentPaletteId;
+// Get all models
+export function getModels() {
+    return state.models;
 }
 
-export function setCurrentPaletteId(paletteId) {
-    if (state.palettes && state.palettes[paletteId]) {
-        state.currentPaletteId = paletteId;
-        // Create a copy of the colors array to avoid reference issues
-        const paletteColors = state.palettes[paletteId].colors;
-        state.palette = Array.isArray(paletteColors) ? [...paletteColors] : [];
+// Set all models
+export function setModels(models) {
+    state.models = models;
+    saveModels(models);
+}
+
+// Get current model
+export function getCurrentModel() {
+    if (!state.currentModelId || !state.models[state.currentModelId]) {
+        return null;
+    }
+    return state.models[state.currentModelId];
+}
+
+// Add a new model
+export function addModel(modelId, modelData) {
+    state.models[modelId] = modelData;
+    try {
+        saveModels(state.models);
+    } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+            console.error('Failed to save model: storage quota exceeded');
+            return;
+        }
+        throw error;
     }
 }
 
-export function getPalettes() {
-    return state.palettes;
+// Remove a model
+export function removeModel(modelId) {
+    delete state.models[modelId];
+    try {
+        saveModels(state.models);
+    } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+            console.error('Failed to save after removing model: storage quota exceeded');
+            return;
+        }
+        throw error;
+    }
 }
 
-export function setPalettes(palettes) {
-    state.palettes = palettes;
+// Update current model
+export function updateCurrentModel(updates) {
+    if (!state.currentModelId || !state.models[state.currentModelId]) {
+        return;
+    }
+    Object.assign(state.models[state.currentModelId], updates);
+    try {
+        saveModels(state.models);
+    } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+            // Revert the changes since save failed
+            console.error('Failed to save model: storage quota exceeded');
+            // Don't revert Object.assign since we can't easily undo it
+            // The user will need to remove some images
+            return;
+        }
+        throw error;
+    }
 }
 
-export function addPalette(paletteId, paletteData) {
-    state.palettes[paletteId] = paletteData;
+// Add color to current model's palette
+export function addColorToPalette(color) {
+    if (!state.currentModelId || !state.models[state.currentModelId]) {
+        return;
+    }
+    const model = state.models[state.currentModelId];
+    if (!model.pallete_with_mappings[color.hex]) {
+        model.pallete_with_mappings[color.hex] = {
+            color: { ...color },
+            mapping: null
+        };
+        try {
+            saveModels(state.models);
+        } catch (error) {
+            if (error.name === 'QuotaExceededError') {
+                console.error('Failed to save color: storage quota exceeded');
+                return;
+            }
+            throw error;
+        }
+    }
 }
 
-export function removePalette(paletteId) {
-    delete state.palettes[paletteId];
+// Remove color from current model's palette
+export function removeColorFromPalette(colorHex) {
+    if (!state.currentModelId || !state.models[state.currentModelId]) {
+        return;
+    }
+    const model = state.models[state.currentModelId];
+    if (model.pallete_with_mappings[colorHex]) {
+        delete model.pallete_with_mappings[colorHex];
+        try {
+            saveModels(state.models);
+        } catch (error) {
+            if (error.name === 'QuotaExceededError') {
+                console.error('Failed to save after removing color: storage quota exceeded');
+                return;
+            }
+            throw error;
+        }
+    }
+}
+
+// Set mapping for a color in current model
+export function setColorMapping(colorHex, mapping) {
+    if (!state.currentModelId || !state.models[state.currentModelId]) {
+        return;
+    }
+    const model = state.models[state.currentModelId];
+    if (model.pallete_with_mappings[colorHex]) {
+        model.pallete_with_mappings[colorHex].mapping = mapping;
+        try {
+            saveModels(state.models);
+        } catch (error) {
+            if (error.name === 'QuotaExceededError') {
+                console.error('Failed to save mapping: storage quota exceeded');
+                return;
+            }
+            throw error;
+        }
+    }
+}
+
+// Remove mapping for a color in current model
+export function removeColorMapping(colorHex) {
+    if (!state.currentModelId || !state.models[state.currentModelId]) {
+        return;
+    }
+    const model = state.models[state.currentModelId];
+    if (model.pallete_with_mappings[colorHex]) {
+        model.pallete_with_mappings[colorHex].mapping = null;
+        try {
+            saveModels(state.models);
+        } catch (error) {
+            if (error.name === 'QuotaExceededError') {
+                console.error('Failed to save after removing mapping: storage quota exceeded');
+                return;
+            }
+            throw error;
+        }
+    }
 }
 
 export function setMyCollection(collection) {

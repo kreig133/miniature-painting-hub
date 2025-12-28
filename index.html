@@ -61,8 +61,8 @@
 
         <!-- Top-level Tabs -->
         <div class="tabs main-tabs">
-            <button class="tab-btn active" data-tab="painting">Painting</button>
-            <button class="tab-btn" data-tab="collection">Collection</button>
+            <button class="tab-btn active" data-tab="painting">Model Painting</button>
+            <button class="tab-btn" data-tab="collection">Paint Collection Management</button>
         </div>
 
         <!-- Painting Tab Content -->
@@ -71,7 +71,7 @@
             <div class="tabs sub-tabs">
                 <div class="sub-tabs-left">
                     <button class="tab-btn active" data-tab="picker" data-parent="painting">Palette Editor</button>
-                    <button class="tab-btn" data-tab="planning" data-parent="painting">Planning</button>
+                    <button class="tab-btn" data-tab="planning" data-parent="painting">Choosing Paints</button>
                     <button class="tab-btn" data-tab="references" data-parent="painting">References</button>
                     <button class="tab-btn" data-tab="mixing" data-parent="painting">Mixing Color</button>
                 </div>
@@ -158,6 +158,7 @@
                         <div class="palette-header">
                             <h2 id="currentPaletteName">Your Palette</h2>
                             <div class="palette-controls">
+                                <button id="paletteEditorAddBtn" type="button" class="planning-add-btn">Add Color</button>
                                 <button class="show-wheel-btn" id="showWheelBtn" title="Show Color Wheel">
                                     <span class="show-wheel-btn-text">Show</span>
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -186,9 +187,9 @@
             <div class="sub-tab-content" id="planningTab">
                 <div class="planning-section">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 style="margin: 0;" id="planningHeader">Planning</h2>
+                        <h2 style="margin: 0;" id="planningHeader">Choosing Paints</h2>
                         <div style="display: flex; gap: 10px;">
-                            <button id="planningAddBtn" type="button" class="planning-add-btn">Add</button>
+                            <button id="planningAddBtn" type="button" class="planning-add-btn">Add Color</button>
                             <button id="planningModeToggleBtn" type="button" class="planning-mode-btn" style="display: none;">Edit</button>
                         </div>
                     </div>
@@ -451,7 +452,7 @@
             <!-- Sub-tabs for Collection -->
             <div class="tabs sub-tabs">
                 <button class="tab-btn active" data-tab="mycollection" data-parent="collection">My Collection</button>
-                <button class="tab-btn" data-tab="shopping" data-parent="collection">Shopping</button>
+                <button class="tab-btn" data-tab="shopping" data-parent="collection">Shopping List</button>
                 <button class="tab-btn" data-tab="paintcolors" data-parent="collection">Paint Colors</button>
             </div>
             
@@ -524,7 +525,7 @@
             <div class="sub-tab-content" id="shoppingTab">
                 <div class="shopping-section">
                     <div class="palette-header">
-                        <h2 id="shoppingHeader">Shopping</h2>
+                        <h2 id="shoppingHeader">Shopping List</h2>
                         <div class="palette-header-actions">
                             <button class="icon-btn" id="saveShoppingBtn" title="Save Shopping List as JSON">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

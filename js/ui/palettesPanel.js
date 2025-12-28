@@ -2,8 +2,10 @@
  * Palettes Panel UI component - manages the foldable palette list panel
  */
 
-import { state, getPalettes, setCurrentPaletteId, getCurrentPaletteId, addPalette, removePalette, setPalettes, getPalette } from '../core/state.js';
-import { savePalettes, saveCurrentPaletteId, saveModelImages, loadModelImages, saveModelImageId, loadModelImageId, saveModelsPanelWidth, loadModelsPanelWidth } from '../utils/storage.js';
+import { state, getModels, setCurrentModelId, getCurrentModelId, addModel, removeModel, getPalette, getCurrentModel, updateCurrentModel } from '../core/state.js';
+import { saveModelsPanelWidth, loadModelsPanelWidth } from '../utils/storage.js';
+import { generateUUID } from '../utils/uuid.js';
+import { saveImage, getImage, deleteImage, getImages } from '../utils/imageStorage.js';
 
 let loadPaletteCallback = null;
 let updatePaletteNameCallback = null;
@@ -159,7 +161,7 @@ export function initPalettesPanel(dependencies = {}) {
     initUploadedImages();
     
     // Load and display palettes (default to current models)
-    loadCurrentPaletteList();
+    loadCurrentPaletteList().catch(err => console.error('Error loading current palette list:', err));
 }
 
 // Initialize panel resize functionality
@@ -223,81 +225,99 @@ function updateBodyPadding(panelWidth) {
 // Initialize uploaded images functionality
 function initUploadedImages() {
     // Load images on initialization
-    loadUploadedImages();
-    loadModelImage();
+    loadUploadedImages().catch(err => console.error('Error loading uploaded images:', err));
+    loadModelImage().catch(err => console.error('Error loading model image:', err));
 }
 
 // Save image from Palette Editor to current model
 export function saveImageToCurrentModel(file) {
     if (!file || !file.type.startsWith('image/')) return;
     
-    const currentId = getCurrentPaletteId();
-    if (!currentId) return;
+    const model = getCurrentModel();
+    if (!model) return;
     
-    // Load existing images
-    const existingImages = loadModelImages(currentId);
-    
-    // Convert file to base64 and add to existing images
+    // Convert file to base64 and save to IndexedDB
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
+        const imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const imageData = {
-            id: 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            id: imageId,
             dataUrl: event.target.result,
             name: file.name,
             uploadedAt: Date.now()
         };
         
-        existingImages.push(imageData);
-        saveModelImages(currentId, existingImages);
-        
-        // Auto-assign as model image if it's the only image
-        if (existingImages.length === 1) {
-            saveModelImageId(currentId, imageData.id);
+        // Save image to IndexedDB
+        try {
+            await saveImage(imageData);
+            
+            const references = model.references || [];
+            references.push(imageId);
+            
+            // Auto-assign as model image if it's the only image
+            const updates = { references };
+            if (references.length === 1) {
+                updates.model_image = imageId;
+            }
+            
+            updateCurrentModel(updates);
+            
+            loadUploadedImages().catch(err => console.error('Error loading uploaded images:', err));
+            loadModelImage().catch(err => console.error('Error loading model image:', err));
+            // Also update References gallery if it's visible
+            updateReferencesGalleryIfVisible();
+        } catch (error) {
+            console.error('Error saving image:', error);
+            alert('Failed to save image. Please try again.');
         }
-        
-        loadUploadedImages();
-        loadModelImage();
-        // Also update References gallery if it's visible
-        updateReferencesGalleryIfVisible();
     };
     reader.readAsDataURL(file);
 }
 
 // Save image from data URL to current model (for link-based images)
-export function saveImageDataUrlToCurrentModel(dataUrl, filename = 'image.jpg') {
-    const currentId = getCurrentPaletteId();
-    if (!currentId) return;
+export async function saveImageDataUrlToCurrentModel(dataUrl, filename = 'image.jpg') {
+    const model = getCurrentModel();
+    if (!model) return;
     
-    // Load existing images
-    const existingImages = loadModelImages(currentId);
-    
+    const imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     const imageData = {
-        id: 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        id: imageId,
         dataUrl: dataUrl,
         name: filename,
         uploadedAt: Date.now()
     };
     
-    existingImages.push(imageData);
-    saveModelImages(currentId, existingImages);
-    
-    // Auto-assign as model image if it's the only image
-    if (existingImages.length === 1) {
-        saveModelImageId(currentId, imageData.id);
+    try {
+        // Save image to IndexedDB
+        await saveImage(imageData);
+        
+        const references = model.references || [];
+        references.push(imageId);
+        
+        // Auto-assign as model image if it's the only image
+        const updates = { references };
+        if (references.length === 1) {
+            updates.model_image = imageId;
+        }
+        
+        updateCurrentModel(updates);
+        
+        loadUploadedImages().catch(err => console.error('Error loading uploaded images:', err));
+        loadModelImage().catch(err => console.error('Error loading model image:', err));
+        // Also update References gallery if it's visible
+        updateReferencesGalleryIfVisible();
+    } catch (error) {
+        console.error('Error saving image:', error);
+        alert('Failed to save image. Please try again.');
     }
-    
-    loadUploadedImages();
-    loadModelImage();
-    // Also update References gallery if it's visible
-    updateReferencesGalleryIfVisible();
 }
 
 // Helper function to update References gallery if visible
 function updateReferencesGalleryIfVisible() {
     const referencesTab = document.getElementById('referencesTab');
     if (referencesTab && referencesTab.classList.contains('active')) {
-        import('../features/references.js').then(({ loadReferencesGallery }) => {
-            loadReferencesGallery();
+        import('../features/references.js').then(async ({ loadReferencesGallery }) => {
+            await loadReferencesGallery();
         }).catch(err => {
             console.error('Error loading references gallery:', err);
         });
@@ -305,14 +325,14 @@ function updateReferencesGalleryIfVisible() {
 }
 
 // Load and display model image
-export function loadModelImage() {
+export async function loadModelImage() {
     const modelImageDisplay = document.getElementById('modelImageDisplay');
     if (!modelImageDisplay) return;
     
     modelImageDisplay.innerHTML = '';
     
-    const currentId = getCurrentPaletteId();
-    if (!currentId) {
+    const model = getCurrentModel();
+    if (!model) {
         const placeholder = document.createElement('div');
         placeholder.className = 'model-image-placeholder';
         placeholder.textContent = 'No Image';
@@ -320,16 +340,15 @@ export function loadModelImage() {
         return;
     }
     
-    const images = loadModelImages(currentId);
-    const modelImageId = loadModelImageId(currentId);
+    const imageIds = model.references || [];
+    const modelImageId = model.model_image;
     
     // Auto-assign if only one image exists
-    if (images.length === 1 && !modelImageId) {
-        saveModelImageId(currentId, images[0].id);
-        const updatedModelImageId = images[0].id;
-        displayModelImage(images, updatedModelImageId);
+    if (imageIds.length === 1 && !modelImageId) {
+        updateCurrentModel({ model_image: imageIds[0] });
+        await displayModelImage(imageIds[0]);
     } else if (modelImageId) {
-        displayModelImage(images, modelImageId);
+        await displayModelImage(modelImageId);
     } else {
         const placeholder = document.createElement('div');
         placeholder.className = 'model-image-placeholder';
@@ -338,11 +357,11 @@ export function loadModelImage() {
     }
 }
 
-function displayModelImage(images, modelImageId) {
+async function displayModelImage(imageId) {
     const modelImageDisplay = document.getElementById('modelImageDisplay');
     if (!modelImageDisplay) return;
     
-    const modelImage = images.find(img => img.id === modelImageId);
+    const modelImage = await getImage(imageId);
     
     if (!modelImage) {
         const placeholder = document.createElement('div');
@@ -371,11 +390,18 @@ function displayModelImage(images, modelImageId) {
     modelImageDisplay.appendChild(setBtn);
 }
 
-function showModelImageSelector() {
-    const currentId = getCurrentPaletteId();
-    if (!currentId) return;
+async function showModelImageSelector() {
+    const model = getCurrentModel();
+    if (!model) return;
     
-    const images = loadModelImages(currentId);
+    const imageIds = model.references || [];
+    if (imageIds.length === 0) {
+        alert('No images available to select');
+        return;
+    }
+    
+    // Load image data to get names
+    const images = await getImages(imageIds);
     if (images.length === 0) {
         alert('No images available to select');
         return;
@@ -389,24 +415,38 @@ function showModelImageSelector() {
     if (selection) {
         const index = parseInt(selection) - 1;
         if (index >= 0 && index < images.length) {
-            saveModelImageId(currentId, images[index].id);
-            loadModelImage();
+            updateCurrentModel({ model_image: images[index].id });
+            await loadModelImage();
             loadPalettesList(); // Update model list to show new image
         }
     }
 }
 
 // Load and display uploaded images (exported for external use)
-export function loadUploadedImages() {
+export async function loadUploadedImages() {
     const uploadedImagesGrid = document.getElementById('uploadedImagesGrid');
     if (!uploadedImagesGrid) return;
     
     uploadedImagesGrid.innerHTML = '';
     
-    const currentId = getCurrentPaletteId();
-    if (!currentId) return;
+    const model = getCurrentModel();
+    if (!model) return;
     
-    const images = loadModelImages(currentId);
+    const imageIds = model.references || [];
+    
+    if (imageIds.length === 0) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.gridColumn = '1 / -1';
+        emptyMsg.style.textAlign = 'center';
+        emptyMsg.style.color = '#999';
+        emptyMsg.style.padding = '20px';
+        emptyMsg.textContent = 'No images uploaded yet';
+        uploadedImagesGrid.appendChild(emptyMsg);
+        return;
+    }
+    
+    // Load images from IndexedDB
+    const images = await getImages(imageIds);
     
     if (images.length === 0) {
         const emptyMsg = document.createElement('div');
@@ -419,7 +459,7 @@ export function loadUploadedImages() {
         return;
     }
     
-    const modelImageId = loadModelImageId(currentId);
+    const modelImageId = model.model_image;
     
     images.forEach(image => {
         const imageItem = document.createElement('div');
@@ -481,12 +521,15 @@ export function loadUploadedImages() {
             setModelBtn.textContent = 'Set as Model';
             setModelBtn.title = 'Set as model image';
             setModelBtn.style.cssText = 'position: absolute; top: 8px; left: 8px; padding: 4px 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 500; display: none; z-index: 10;';
-            setModelBtn.addEventListener('click', (e) => {
+            setModelBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                saveModelImageId(currentId, image.id);
-                loadUploadedImages();
-                loadModelImage();
-                loadPalettesList();
+                const model = getCurrentModel();
+                if (model) {
+                    updateCurrentModel({ model_image: image.id });
+                    await loadUploadedImages();
+                    await loadModelImage();
+                    await loadPalettesList();
+                }
             });
             imageItem.appendChild(setModelBtn);
             
@@ -505,7 +548,7 @@ export function loadUploadedImages() {
         removeBtn.title = 'Remove image';
         removeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            removeImage(currentId, image.id);
+            removeImage(image.id);
         });
         imageItem.appendChild(removeBtn);
         
@@ -514,57 +557,64 @@ export function loadUploadedImages() {
 }
 
 // Remove an image
-function removeImage(paletteId, imageId) {
-    const images = loadModelImages(paletteId);
-    const modelImageId = loadModelImageId(paletteId);
+async function removeImage(imageId) {
+    const model = getCurrentModel();
+    if (!model) return;
     
-    // If removing the model image, clear it
-    if (modelImageId === imageId) {
-        saveModelImageId(paletteId, null);
+    const references = model.references || [];
+    const filteredImageIds = references.filter(id => id !== imageId);
+    
+    // Delete image from IndexedDB
+    try {
+        await deleteImage(imageId);
+    } catch (error) {
+        console.error('Error deleting image from IndexedDB:', error);
     }
     
-    const filteredImages = images.filter(img => img.id !== imageId);
-    saveModelImages(paletteId, filteredImages);
-    
-    // Auto-assign remaining image as model image if only one left
-    if (filteredImages.length === 1) {
-        saveModelImageId(paletteId, filteredImages[0].id);
+    // If removing the model image, clear it or set to first remaining
+    let updates = { references: filteredImageIds };
+    if (model.model_image === imageId) {
+        if (filteredImageIds.length > 0) {
+            updates.model_image = filteredImageIds[0];
+        } else {
+            updates.model_image = null;
+        }
     }
     
-    loadUploadedImages();
-    loadModelImage();
+    updateCurrentModel(updates);
+    
+    await loadUploadedImages();
+    await loadModelImage();
 }
 
-// Load and display only the current palette
-function loadCurrentPaletteList() {
+// Load and display only the current model
+async function loadCurrentPaletteList() {
     const currentPalettesList = document.getElementById('currentPalettesList');
     if (!currentPalettesList) return;
     
     currentPalettesList.innerHTML = '';
     
-    const palettes = getPalettes();
-    const currentId = getCurrentPaletteId();
+    const model = getCurrentModel();
+    const currentId = getCurrentModelId();
     
-    // Only show the current palette
-    if (currentId && palettes[currentId]) {
-        const palette = palettes[currentId];
-        const paletteItem = createPaletteItem(palette, currentId);
-        currentPalettesList.appendChild(paletteItem);
+    // Only show the current model
+    if (model && currentId) {
+        const modelItem = await createPaletteItem(model, currentId);
+        currentPalettesList.appendChild(modelItem);
     }
 }
 
-// Helper function to create a palette item
-function createPaletteItem(palette, currentId) {
+// Helper function to create a model item
+async function createPaletteItem(model, currentId) {
     const paletteItem = document.createElement('div');
     paletteItem.className = 'palette-item-row';
-    if (palette.id === currentId) {
+    if (model.model_id === currentId) {
         paletteItem.classList.add('active');
     }
     
     // Add model image thumbnail
-    const modelImageId = loadModelImageId(palette.id);
-    const images = loadModelImages(palette.id);
-    const modelImage = modelImageId ? images.find(img => img.id === modelImageId) : null;
+    const modelImageId = model.model_image;
+    const modelImage = modelImageId ? await getImage(modelImageId) : null;
     
     const imageThumb = document.createElement('div');
     imageThumb.className = 'palette-item-image';
@@ -583,11 +633,12 @@ function createPaletteItem(palette, currentId) {
     
     const nameSpan = document.createElement('span');
     nameSpan.className = 'palette-item-name';
-    nameSpan.textContent = palette.name;
+    nameSpan.textContent = model.model_name;
     
     const colorCount = document.createElement('span');
     colorCount.className = 'palette-item-count';
-    colorCount.textContent = `(${palette.colors.length})`;
+    const paletteColors = Object.keys(model.pallete_with_mappings || {}).length;
+    colorCount.textContent = `(${paletteColors})`;
     
     const itemContent = document.createElement('div');
     itemContent.className = 'palette-item-content';
@@ -606,21 +657,21 @@ function createPaletteItem(palette, currentId) {
     renameBtn.title = 'Rename palette';
     renameBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        showRenameModal(palette.id, palette.name);
+        showRenameModal(model.model_id, model.model_name);
     });
     ghostButtons.appendChild(renameBtn);
     
-    // Delete button (only show if more than one palette)
-    const palettes = getPalettes();
-    if (Object.keys(palettes).length > 1) {
+    // Delete button (only show if more than one model)
+    const models = getModels();
+    if (Object.keys(models).length > 1) {
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'palette-ghost-btn palette-delete-btn';
         deleteBtn.textContent = 'Delete';
-        deleteBtn.title = 'Delete palette';
+        deleteBtn.title = 'Delete model';
         deleteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (confirm(`Delete "${palette.name}"?`)) {
-                deletePalette(palette.id);
+            if (confirm(`Delete "${model.model_name}"?`)) {
+                deletePalette(model.model_id);
             }
         });
         ghostButtons.appendChild(deleteBtn);
@@ -629,147 +680,143 @@ function createPaletteItem(palette, currentId) {
     paletteItem.appendChild(itemContent);
     paletteItem.appendChild(ghostButtons);
     
-    // Click to load palette
+    // Click to load model
     paletteItem.addEventListener('click', (e) => {
         // Don't process if clicking on ghost buttons
         if (e.target.closest('.palette-item-ghost-buttons')) {
             return;
         }
         
-        // Don't switch if already the active palette
-        if (palette.id === getCurrentPaletteId()) {
+        // Don't switch if already the active model
+        if (model.model_id === getCurrentModelId()) {
             return;
         }
         
-        switchToPalette(palette.id);
+        switchToPalette(model.model_id);
     });
     
     return paletteItem;
 }
 
 // Load and display the list of palettes (all models)
-export function loadPalettesList() {
+export async function loadPalettesList() {
     const modelsList = document.getElementById('modelsList');
     if (!modelsList) return;
     
     modelsList.innerHTML = '';
     
-    const palettes = getPalettes();
-    const currentId = getCurrentPaletteId();
+    const models = getModels();
+    const currentId = getCurrentModelId();
     
-    // Create list items for each palette
-    Object.values(palettes).forEach(palette => {
-        const paletteItem = createPaletteItem(palette, currentId);
-        modelsList.appendChild(paletteItem);
-    });
+    // Create list items for each model
+    for (const model of Object.values(models)) {
+        const modelItem = await createPaletteItem(model, currentId);
+        modelsList.appendChild(modelItem);
+    }
 }
 
-// Create a new palette
+// Create a new model
 function createNewPalette() {
-    const palettes = getPalettes();
-    const newId = 'palette_' + Date.now();
-    const paletteNumber = Object.keys(palettes).length + 1;
+    const models = getModels();
+    const newId = 'model_' + generateUUID();
+    const modelNumber = Object.keys(models).length + 1;
     
-    const newPalette = {
-        id: newId,
-        name: `Model ${paletteNumber}`,
-        colors: []
+    const newModel = {
+        model_id: newId,
+        model_name: `Model ${modelNumber}`,
+        model_image: null,
+        pallete_with_mappings: {},
+        references: []
     };
     
-    addPalette(newId, newPalette);
-    savePalettes(state.palettes);
+    addModel(newId, newModel);
     
-    // Switch to new palette
+    // Switch to new model
     switchToPalette(newId);
 }
 
-// Switch to a different palette
-export function switchToPalette(paletteId) {
-    // Set the current palette ID first - this updates state.palette
-    setCurrentPaletteId(paletteId);
-    
-    // Save the current palette ID
-    saveCurrentPaletteId(paletteId);
+// Switch to a different model
+export function switchToPalette(modelId) {
+    // Set the current model ID
+    setCurrentModelId(modelId);
     
     // Load and display the palette colors FIRST, before updating UI list
     if (loadPaletteCallback) {
         loadPaletteCallback();
     }
     
-    // Update UI lists to highlight active palette
+    // Update UI lists to highlight active model
     loadPalettesList();
     loadCurrentPaletteList();
-    // Reload uploaded images when switching palettes
-    loadUploadedImages();
-    loadModelImage();
+    // Reload uploaded images when switching models
+    loadUploadedImages().catch(err => console.error('Error loading uploaded images:', err));
+    loadModelImage().catch(err => console.error('Error loading model image:', err));
     
     // Update References gallery if it's open
     const referencesTab = document.getElementById('referencesTab');
     if (referencesTab && referencesTab.classList.contains('active')) {
-        import('../features/references.js').then(({ loadReferencesGallery }) => {
-            loadReferencesGallery();
+        import('../features/references.js').then(async ({ loadReferencesGallery }) => {
+            await loadReferencesGallery();
         }).catch(err => {
             console.error('Error loading references gallery:', err);
         });
     }
     
-    // Update palette name in header
+    // Update model name in header
     if (updatePaletteNameCallback) {
         updatePaletteNameCallback();
     }
     
-    // Update planning table with new palette data
+    // Update planning table with new model data
     if (updatePlanningTableCallback) {
         updatePlanningTableCallback();
     }
 }
 
 // Show rename modal
-function showRenameModal(paletteId, currentName) {
-    const newName = prompt('Enter new palette name:', currentName);
+function showRenameModal(modelId, currentName) {
+    const newName = prompt('Enter new model name:', currentName);
     if (newName !== null && newName.trim() !== '') {
-        renamePalette(paletteId, newName.trim());
+        renamePalette(modelId, newName.trim());
     }
 }
 
-// Rename a palette
-function renamePalette(paletteId, newName) {
+// Rename a model
+function renamePalette(modelId, newName) {
     if (!newName || newName.trim() === '') return;
     
-    const palettes = getPalettes();
-    if (palettes[paletteId]) {
-        palettes[paletteId].name = newName.trim();
-        setPalettes(palettes);
-        savePalettes(state.palettes);
+    const models = getModels();
+    if (models[modelId]) {
+        models[modelId].model_name = newName.trim();
+        updateCurrentModel({ model_name: newName.trim() });
         
         // Update UI
         loadPalettesList();
         loadCurrentPaletteList();
         
-        // Update palette name in header if it's the current palette
-        if (paletteId === getCurrentPaletteId() && updatePaletteNameCallback) {
+        // Update model name in header if it's the current model
+        if (modelId === getCurrentModelId() && updatePaletteNameCallback) {
             updatePaletteNameCallback();
         }
     }
 }
 
-// Delete a palette
-function deletePalette(paletteId) {
-    const palettes = getPalettes();
-    const currentId = getCurrentPaletteId();
+// Delete a model
+function deletePalette(modelId) {
+    const models = getModels();
+    const currentId = getCurrentModelId();
     
-    // Can't delete if it's the only palette
-    if (Object.keys(palettes).length <= 1) {
-        alert('Cannot delete the last palette. Create a new palette first.');
+    // Can't delete if it's the only model
+    if (Object.keys(models).length <= 1) {
+        alert('Cannot delete the last model. Create a new model first.');
         return;
     }
     
-    removePalette(paletteId);
-    savePalettes(state.palettes);
+    removeModel(modelId);
     
-    // If we deleted the current palette, switch to another one
-    if (paletteId === currentId) {
-        const remainingIds = Object.keys(state.palettes);
+    // If we deleted the current model, switch to another one
+    if (modelId === currentId) {
+        const remainingIds = Object.keys(models).filter(id => id !== modelId);
         if (remainingIds.length > 0) {
             switchToPalette(remainingIds[0]);
         }

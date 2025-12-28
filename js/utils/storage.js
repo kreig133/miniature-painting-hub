@@ -2,15 +2,6 @@
  * LocalStorage utility functions
  */
 
-export function savePalette(palette) {
-    localStorage.setItem('colorPalette', JSON.stringify(palette));
-}
-
-export function loadPalette() {
-    const data = localStorage.getItem('colorPalette');
-    return data ? JSON.parse(data) : [];
-}
-
 export function saveMyCollection(collection) {
     const collectionData = {
         version: 1,
@@ -100,42 +91,39 @@ export function loadCollectionValueRange() {
     return isNaN(value) ? 100 : value;
 }
 
-// Multiple palettes storage
-export function savePalettes(palettes) {
-    localStorage.setItem('palettes', JSON.stringify(palettes));
-}
+// Models storage - unified structure
+// Structure: { model_id: { model_id, model_name, model_image, pallete_with_mappings, references } }
 
-export function loadPalettes() {
-    const data = localStorage.getItem('palettes');
-    if (data) {
-        return JSON.parse(data);
+export function saveModels(models) {
+    try {
+        const data = JSON.stringify(models);
+        // Check size (localStorage typically has ~5-10MB limit)
+        const sizeInMB = new Blob([data]).size / (1024 * 1024);
+        if (sizeInMB > 4.5) { // Warn if approaching limit
+            console.warn(`Models data size: ${sizeInMB.toFixed(2)}MB. Approaching localStorage limit.`);
+        }
+        localStorage.setItem('models', data);
+    } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+            console.error('localStorage quota exceeded. Image data is too large. Consider removing some images.');
+            alert('Storage limit exceeded. Please remove some images from your models. Images stored as base64 data can quickly fill up browser storage.');
+            throw error;
+        }
+        throw error;
     }
-    
-    // Migration: if old single palette exists, convert it
-    const oldPalette = loadPalette();
-    if (oldPalette && oldPalette.length > 0) {
-        const defaultId = 'palette_1';
-        const palettes = {
-            [defaultId]: {
-                id: defaultId,
-                name: 'Model 1',
-                colors: oldPalette
-            }
-        };
-        savePalettes(palettes);
-        // Keep old palette for backward compatibility
-        return palettes;
-    }
-    
-    return {};
 }
 
-export function saveCurrentPaletteId(paletteId) {
-    localStorage.setItem('currentPaletteId', paletteId);
+export function loadModels() {
+    const data = localStorage.getItem('models');
+    return data ? JSON.parse(data) : {};
 }
 
-export function loadCurrentPaletteId() {
-    return localStorage.getItem('currentPaletteId');
+export function saveCurrentModelId(modelId) {
+    localStorage.setItem('currentModelId', modelId || '');
+}
+
+export function loadCurrentModelId() {
+    return localStorage.getItem('currentModelId');
 }
 
 export function saveUseShoppingColors(useShopping) {
@@ -144,36 +132,6 @@ export function saveUseShoppingColors(useShopping) {
 
 export function loadUseShoppingColors() {
     return localStorage.getItem('useShoppingColors') === 'true';
-}
-
-// Planning mappings: { paletteId: { colorHex: { candidate1: {...}, candidate2: {...}, fromAll: {...} } } }
-export function savePlanningMappings(mappings) {
-    localStorage.setItem('planningMappings', JSON.stringify(mappings));
-}
-
-export function loadPlanningMappings() {
-    const data = localStorage.getItem('planningMappings');
-    return data ? JSON.parse(data) : {};
-}
-
-// Model images storage (stored per palette)
-export function saveModelImages(paletteId, images) {
-    const key = `modelImages_${paletteId}`;
-    localStorage.setItem(key, JSON.stringify(images));
-}
-
-export function loadModelImages(paletteId) {
-    const key = `modelImages_${paletteId}`;
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : [];
-}
-
-export function saveModelImageId(paletteId, imageId) {
-    localStorage.setItem(`modelImageId_${paletteId}`, imageId || '');
-}
-
-export function loadModelImageId(paletteId) {
-    return localStorage.getItem(`modelImageId_${paletteId}`) || null;
 }
 
 export function saveModelsPanelWidth(width) {

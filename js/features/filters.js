@@ -235,6 +235,10 @@ function triggerReload(containerId) {
         if (window.updateCustomMixColorSelectTable) {
             window.updateCustomMixColorSelectTable();
         }
+    } else if (containerId === 'planningManualSelectFilters') {
+        if (window.loadPlanningManualSelectTable) {
+            window.loadPlanningManualSelectTable();
+        }
     }
 }
 

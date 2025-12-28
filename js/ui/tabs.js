@@ -107,7 +107,9 @@ export function initTabs() {
                     // If References tab is activated, load the gallery
                     if (targetTab === 'references') {
                         initReferences(); // Initialize modal if not already done
-                        loadReferencesGallery();
+                        loadReferencesGallery().catch(err => {
+                            console.error('Error loading references gallery:', err);
+                        });
                     }
                 }
             }

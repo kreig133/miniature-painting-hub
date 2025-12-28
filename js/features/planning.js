@@ -4,16 +4,14 @@
 
 import { rgbToHSV, hsvDistance, addGradientClickToColorBox, hexToRgb, hsvToRGB, rgbToHex, ciede2000Distance } from '../utils/colorUtils.js';
 import { addHoverTooltipToColorBox } from '../utils/domUtils.js';
-import { state, getPalette, getMyCollection, getMergedPaintColors, getCurrentPaletteId, getPlanningMappings, setPlanningMappings, getPlanningMode, setPlanningMode, getShoppingCart, onPlanningModeChange } from '../core/state.js';
+import { state, getPalette, getMyCollection, getMergedPaintColors, getCurrentModelId, getColorMapping, setColorMapping, removeColorMapping, getPlanningMode, setPlanningMode, getShoppingCart, onPlanningModeChange, getPalleteWithMappings } from '../core/state.js';
 import { updateHeaderCount, getEffectiveMyCollection } from './myCollection.js';
-import { filterData } from './filters.js';
-import { savePlanningMappings } from '../utils/storage.js';
+import { filterData, createFilterCheckboxes } from './filters.js';
 
 // Dependencies
 let saveSortOrder = null;
 let setSortOrder = null;
 let sortPaletteByHSV = null;
-let savePalette = null;
 let loadPalette = null;
 let addToShoppingCart = null;
 let addColorToPalette = null;
@@ -420,65 +418,25 @@ export function findNthClosestFromPalette(targetColor, n, useSelectedColorThresh
 
 // Helper functions for mappings
 function getMapping(colorHex) {
-    const paletteId = getCurrentPaletteId();
-    const mappings = getPlanningMappings();
-    if (!paletteId || !mappings || !mappings[paletteId]) {
-        return null;
-    }
-    return mappings[paletteId][colorHex] || null;
+    return getColorMapping(colorHex);
 }
 
-function saveMapping(colorHex, type, paint) {
-    const paletteId = getCurrentPaletteId();
-    if (!paletteId) return;
-    
-    const mappings = getPlanningMappings();
-    if (!mappings[paletteId]) {
-        mappings[paletteId] = {};
-    }
-    if (!mappings[paletteId][colorHex]) {
-        mappings[paletteId][colorHex] = {};
-    }
-    
-    // Only one assignment is allowed per palette color
-    // Clear all other assignments (candidate1, candidate2, fromAll, mixingScheme)
-    delete mappings[paletteId][colorHex].candidate1;
-    delete mappings[paletteId][colorHex].candidate2;
-    delete mappings[paletteId][colorHex].fromAll;
-    delete mappings[paletteId][colorHex].mixingScheme;
-    
-    // Set the new assignment
-    mappings[paletteId][colorHex][type] = paint;
-    setPlanningMappings(mappings);
-    savePlanningMappings(mappings);
+// Check if mapping is a MixingSchemeObject (has colors and coefficients)
+function isMixingScheme(mapping) {
+    return mapping && typeof mapping === 'object' && Array.isArray(mapping.colors) && Array.isArray(mapping.coefficients);
 }
 
-function removeMapping(colorHex) {
-    const paletteId = getCurrentPaletteId();
-    if (!paletteId) return;
-    
-    const mappings = getPlanningMappings();
-    if (mappings[paletteId] && mappings[paletteId][colorHex]) {
-        delete mappings[paletteId][colorHex];
-        setPlanningMappings(mappings);
-        savePlanningMappings(mappings);
-    }
-}
-
-function countMappings(colorHex) {
-    const mapping = getMapping(colorHex);
-    if (!mapping) return 0;
-    let count = 0;
-    if (mapping.candidate1) count++;
-    if (mapping.candidate2) count++;
-    if (mapping.fromAll) count++;
-    if (mapping.mixingScheme) count++;
-    return count;
+// Check if mapping is a PaintObject (has hex, name, producer, type but not colors/coefficients)
+function isPaintObject(mapping) {
+    return mapping && typeof mapping === 'object' && mapping.hex && !Array.isArray(mapping.colors);
 }
 
 function getAssignedPaint(mapping) {
     if (!mapping) return null;
-    return mapping.candidate1 || mapping.candidate2 || mapping.fromAll || null;
+    // If it's a mixing scheme, return null (handled separately)
+    if (isMixingScheme(mapping)) return null;
+    // Otherwise it's a paint object
+    return mapping;
 }
 
 function isInMyCollection(paint) {
@@ -494,25 +452,7 @@ function isInShoppingList(paint) {
 }
 
 export function saveMixingScheme(colorHex, mixingScheme) {
-    const paletteId = getCurrentPaletteId();
-    if (!paletteId) return;
-    
-    const mappings = getPlanningMappings();
-    if (!mappings[paletteId]) {
-        mappings[paletteId] = {};
-    }
-    if (!mappings[paletteId][colorHex]) {
-        mappings[paletteId][colorHex] = {};
-    }
-    
-    // Remove existing paint mappings when saving mixing scheme
-    delete mappings[paletteId][colorHex].candidate1;
-    delete mappings[paletteId][colorHex].candidate2;
-    delete mappings[paletteId][colorHex].fromAll;
-    
-    mappings[paletteId][colorHex].mixingScheme = mixingScheme;
-    setPlanningMappings(mappings);
-    savePlanningMappings(mappings);
+    setColorMapping(colorHex, mixingScheme);
 }
 
 // Load planning table
@@ -540,6 +480,7 @@ export function loadPlanningTable(preserveMode = false) {
                 <th>Candidate 2</th>
                 <th>From All</th>
                 <th>Manual</th>
+                <th>Mixing</th>
             `;
         }
     }
@@ -554,7 +495,7 @@ export function loadPlanningTable(preserveMode = false) {
         if (palette.length === 0) {
             const row = document.createElement('tr');
             const cell = document.createElement('td');
-            cell.colSpan = currentMode === 'view' ? 2 : 5;
+            cell.colSpan = currentMode === 'view' ? 2 : 6;
             cell.textContent = 'No colors in palette yet. Add colors from the Color Picker tab.';
             row.appendChild(cell);
             tbody.appendChild(row);
@@ -614,20 +555,20 @@ export function loadPlanningTable(preserveMode = false) {
                 const candidate1Match = findClosestFromMyCollection(color, 'planningFilters');
                 const candidate1Cell = createEditModeCandidateCell(candidate1Match, () => {
                     if (candidate1Match) {
-                        saveMapping(color.hex, 'candidate1', candidate1Match);
+                        setColorMapping(color.hex, candidate1Match);
                         updatePlanningTable();
                     }
-                }, mapping?.candidate1 ? 'candidate1' : null, mapping);
+                }, mapping, candidate1Match);
                 row.appendChild(candidate1Cell);
                 
                 // Candidate 2
                 const candidate2Match = findNthClosestFromMyCollection(color, 2, 'planningFilters');
                 const candidate2Cell = createEditModeCandidateCell(candidate2Match, () => {
                     if (candidate2Match) {
-                        saveMapping(color.hex, 'candidate2', candidate2Match);
+                        setColorMapping(color.hex, candidate2Match);
                         updatePlanningTable();
                     }
-                }, mapping?.candidate2 ? 'candidate2' : null, mapping);
+                }, mapping, candidate2Match);
                 row.appendChild(candidate2Cell);
                 
                 // From All
@@ -635,13 +576,102 @@ export function loadPlanningTable(preserveMode = false) {
                 const fromAllCell = createEditModeFromAllCell(fromAllMatch, color, mapping);
                 row.appendChild(fromAllCell);
                 
-                // Manual (Mixing)
+                // Manual - only show paint if it's not in any other column
+                const manualCell = createEditModeManualCell(color, mapping, candidate1Match, candidate2Match, fromAllMatch);
+                row.appendChild(manualCell);
+                
+                // Mixing
                 const mixingCell = createEditModeMixingCell(color, candidate1Match, candidate2Match, fromAllMatch, mapping);
                 row.appendChild(mixingCell);
                 
                 tbody.appendChild(row);
             });
         }
+        
+        // Add footer with icon legend (shown in both modes)
+        const tfoot = planningTable.querySelector('tfoot');
+        if (tfoot) {
+            tfoot.remove();
+        }
+        const newTfoot = document.createElement('tfoot');
+        const footerRow = document.createElement('tr');
+        const footerCell = document.createElement('td');
+        footerCell.colSpan = currentMode === 'view' ? 2 : 6;
+        footerCell.style.textAlign = 'left';
+        footerCell.style.padding = '15px';
+        footerCell.style.background = '#f8f9fa';
+        footerCell.style.borderTop = '2px solid #e0e0e0';
+        footerCell.style.fontSize = '0.9rem';
+        footerCell.style.color = '#666';
+        
+        const legendContainer = document.createElement('div');
+        legendContainer.style.display = 'flex';
+        legendContainer.style.alignItems = 'center';
+        legendContainer.style.gap = '20px';
+        
+        if (currentMode === 'view') {
+            // View mode: show shopping cart and question mark icons
+            // Shopping cart icon legend
+            const shoppingLegend = document.createElement('div');
+            shoppingLegend.style.display = 'flex';
+            shoppingLegend.style.alignItems = 'center';
+            shoppingLegend.style.gap = '8px';
+            const shoppingIconLegend = document.createElement('div');
+            shoppingIconLegend.className = 'planning-paint-status-icon planning-shopping-icon';
+            shoppingIconLegend.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+            shoppingIconLegend.style.position = 'static';
+            shoppingLegend.appendChild(shoppingIconLegend);
+            const shoppingText = document.createElement('span');
+            shoppingText.textContent = 'Paint in shopping cart';
+            shoppingLegend.appendChild(shoppingText);
+            legendContainer.appendChild(shoppingLegend);
+            
+            // Question mark icon legend
+            const questionLegend = document.createElement('div');
+            questionLegend.style.display = 'flex';
+            questionLegend.style.alignItems = 'center';
+            questionLegend.style.gap = '8px';
+            const questionIconLegend = document.createElement('div');
+            questionIconLegend.className = 'planning-paint-status-icon planning-question-icon';
+            questionIconLegend.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+            questionIconLegend.style.position = 'static';
+            questionLegend.appendChild(questionIconLegend);
+            const questionText = document.createElement('span');
+            questionText.textContent = 'Paint is not in any collection';
+            questionLegend.appendChild(questionText);
+            legendContainer.appendChild(questionLegend);
+        } else {
+            // Edit mode: show "Mixing" text and shopping cart icon
+            // Mixing text
+            const mixingLegend = document.createElement('div');
+            mixingLegend.style.display = 'flex';
+            mixingLegend.style.alignItems = 'center';
+            mixingLegend.style.gap = '8px';
+            const mixingText = document.createElement('span');
+            mixingText.textContent = 'Mixing - mix several paints';
+            mixingLegend.appendChild(mixingText);
+            legendContainer.appendChild(mixingLegend);
+            
+            // Shopping cart icon legend
+            const shoppingLegend = document.createElement('div');
+            shoppingLegend.style.display = 'flex';
+            shoppingLegend.style.alignItems = 'center';
+            shoppingLegend.style.gap = '8px';
+            const shoppingIconLegend = document.createElement('div');
+            shoppingIconLegend.className = 'planning-paint-status-icon planning-shopping-icon';
+            shoppingIconLegend.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+            shoppingIconLegend.style.position = 'static';
+            shoppingLegend.appendChild(shoppingIconLegend);
+            const shoppingText = document.createElement('span');
+            shoppingText.textContent = 'Add paint to shopping list';
+            shoppingLegend.appendChild(shoppingText);
+            legendContainer.appendChild(shoppingLegend);
+        }
+        
+        footerCell.appendChild(legendContainer);
+        footerRow.appendChild(footerCell);
+        newTfoot.appendChild(footerRow);
+        planningTable.appendChild(newTfoot);
     }
     
     // Helper function to create view mode mapping cell
@@ -649,7 +679,7 @@ export function loadPlanningTable(preserveMode = false) {
         const cell = document.createElement('td');
         
         const assignedPaint = getAssignedPaint(mapping);
-        const mixingScheme = mapping?.mixingScheme;
+        const mixingScheme = isMixingScheme(mapping) ? mapping : null;
         
         if (assignedPaint || (mixingScheme && mixingScheme.resultHex)) {
             const container = document.createElement('div');
@@ -679,7 +709,7 @@ export function loadPlanningTable(preserveMode = false) {
                     if (inShoppingList) {
                         const shoppingIcon = document.createElement('div');
                         shoppingIcon.className = 'planning-paint-status-icon planning-shopping-icon';
-                        shoppingIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+                        shoppingIcon.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
                         shoppingIcon.style.position = 'absolute';
                         shoppingIcon.style.bottom = '2px';
                         shoppingIcon.style.left = '2px';
@@ -687,18 +717,10 @@ export function loadPlanningTable(preserveMode = false) {
                     } else {
                         const questionIcon = document.createElement('div');
                         questionIcon.className = 'planning-paint-status-icon planning-question-icon';
-                        questionIcon.innerHTML = '❓';
+                        questionIcon.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
                         questionIcon.style.position = 'absolute';
                         questionIcon.style.bottom = '2px';
                         questionIcon.style.left = '2px';
-                        questionIcon.style.backgroundColor = 'red';
-                        questionIcon.style.borderRadius = '50%';
-                        questionIcon.style.width = '18px';
-                        questionIcon.style.height = '18px';
-                        questionIcon.style.display = 'flex';
-                        questionIcon.style.alignItems = 'center';
-                        questionIcon.style.justifyContent = 'center';
-                        questionIcon.style.fontSize = '12px';
                         paintColorBox.appendChild(questionIcon);
                     }
                 }
@@ -740,7 +762,7 @@ export function loadPlanningTable(preserveMode = false) {
                         if (inShoppingList) {
                             const shoppingIcon = document.createElement('div');
                             shoppingIcon.className = 'planning-paint-status-icon planning-shopping-icon';
-                            shoppingIcon.innerHTML = '🛒';
+                            shoppingIcon.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
                             shoppingIcon.style.position = 'absolute';
                             shoppingIcon.style.bottom = '2px';
                             shoppingIcon.style.left = '2px';
@@ -748,18 +770,10 @@ export function loadPlanningTable(preserveMode = false) {
                         } else {
                             const questionIcon = document.createElement('div');
                             questionIcon.className = 'planning-paint-status-icon planning-question-icon';
-                            questionIcon.innerHTML = '❓';
+                            questionIcon.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
                             questionIcon.style.position = 'absolute';
                             questionIcon.style.bottom = '2px';
                             questionIcon.style.left = '2px';
-                            questionIcon.style.backgroundColor = 'red';
-                            questionIcon.style.borderRadius = '50%';
-                            questionIcon.style.width = '18px';
-                            questionIcon.style.height = '18px';
-                            questionIcon.style.display = 'flex';
-                            questionIcon.style.alignItems = 'center';
-                            questionIcon.style.justifyContent = 'center';
-                            questionIcon.style.fontSize = '12px';
                             paintColorBox.appendChild(questionIcon);
                         }
                     }
@@ -845,10 +859,7 @@ export function loadPlanningTable(preserveMode = false) {
                                 if (inShoppingList) {
                                     const shoppingIcon = document.createElement('div');
                                     shoppingIcon.className = 'planning-paint-status-icon planning-shopping-icon';
-                                    shoppingIcon.style.width = '16px';
-                                    shoppingIcon.style.height = '16px';
-                                    shoppingIcon.style.fontSize = '10px';
-                                    shoppingIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+                                    shoppingIcon.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
                                     shoppingIcon.style.position = 'absolute';
                                     shoppingIcon.style.bottom = '2px';
                                     shoppingIcon.style.left = '2px';
@@ -856,18 +867,10 @@ export function loadPlanningTable(preserveMode = false) {
                                 } else {
                                     const questionIcon = document.createElement('div');
                                     questionIcon.className = 'planning-paint-status-icon planning-question-icon';
-                                    questionIcon.style.width = '16px';
-                                    questionIcon.style.height = '16px';
-                                    questionIcon.style.fontSize = '10px';
-                                    questionIcon.innerHTML = '❓';
+                                    questionIcon.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
                                     questionIcon.style.position = 'absolute';
                                     questionIcon.style.bottom = '2px';
                                     questionIcon.style.left = '2px';
-                                    questionIcon.style.backgroundColor = 'red';
-                                    questionIcon.style.borderRadius = '50%';
-                                    questionIcon.style.display = 'flex';
-                                    questionIcon.style.alignItems = 'center';
-                                    questionIcon.style.justifyContent = 'center';
                                     colorBox.appendChild(questionIcon);
                                 }
                             }
@@ -882,17 +885,12 @@ export function loadPlanningTable(preserveMode = false) {
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'planning-delete-btn';
             deleteBtn.type = 'button';
-            deleteBtn.innerHTML = '🗑️';
+            deleteBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
             deleteBtn.style.display = 'none';
             deleteBtn.style.position = 'absolute';
             deleteBtn.style.top = '50%';
             deleteBtn.style.right = '10px';
             deleteBtn.style.transform = 'translateY(-50%)';
-            deleteBtn.style.background = 'rgba(244, 67, 54, 0.9)';
-            deleteBtn.style.color = 'white';
-            deleteBtn.style.border = 'none';
-            deleteBtn.style.borderRadius = '4px';
-            deleteBtn.style.padding = '4px 8px';
             deleteBtn.style.cursor = 'pointer';
             
             container.addEventListener('mouseenter', () => {
@@ -904,7 +902,7 @@ export function loadPlanningTable(preserveMode = false) {
             
             deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                removeMapping(paletteColorHex);
+                removeColorMapping(paletteColorHex);
                 updateCallback();
             });
             
@@ -923,13 +921,15 @@ export function loadPlanningTable(preserveMode = false) {
         return cell;
     }
     
-    // Helper function to create edit mode candidate cell
-    function createEditModeCandidateCell(candidateMatch, onClickCallback, highlightType, mapping) {
+    function createEditModeCandidateCell(candidateMatch, onClickCallback, mapping, candidateMatchForHighlight) {
         const cell = document.createElement('td');
         cell.style.position = 'relative';
         
-        // Highlight if mapping exists for this candidate
-        if (highlightType && mapping && mapping[highlightType]) {
+        // Highlight if mapping exists and matches this candidate (is a PaintObject and matches)
+        if (mapping && isPaintObject(mapping) && candidateMatchForHighlight && 
+            mapping.hex === candidateMatchForHighlight.hex && 
+            mapping.name === candidateMatchForHighlight.name &&
+            mapping.producer === candidateMatchForHighlight.producer) {
             cell.classList.add('planning-cell-highlight');
         }
         
@@ -981,8 +981,13 @@ export function loadPlanningTable(preserveMode = false) {
             assignBtn.style.padding = '4px 8px';
             assignBtn.style.cursor = 'pointer';
             
+            const isHighlighted = mapping && isPaintObject(mapping) && candidateMatchForHighlight && 
+                mapping.hex === candidateMatchForHighlight.hex && 
+                mapping.name === candidateMatchForHighlight.name &&
+                mapping.producer === candidateMatchForHighlight.producer;
+            
             container.addEventListener('mouseenter', () => {
-                if (!mapping || !mapping[highlightType]) {
+                if (!isHighlighted) {
                     assignBtn.style.display = 'block';
                 }
             });
@@ -1009,8 +1014,11 @@ export function loadPlanningTable(preserveMode = false) {
         const cell = document.createElement('td');
         cell.style.position = 'relative';
         
-        // Highlight if mapping exists
-        if (mapping && mapping.fromAll) {
+        // Highlight if mapping exists and matches fromAllMatch (is a PaintObject and matches)
+        if (mapping && isPaintObject(mapping) && fromAllMatch &&
+            mapping.hex === fromAllMatch.hex && 
+            mapping.name === fromAllMatch.name &&
+            mapping.producer === fromAllMatch.producer) {
             cell.classList.add('planning-cell-highlight');
         }
         
@@ -1052,8 +1060,13 @@ export function loadPlanningTable(preserveMode = false) {
             buyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
             buyBtn.style.display = 'none';
             
+            const isHighlighted = mapping && isPaintObject(mapping) && fromAllMatch &&
+                mapping.hex === fromAllMatch.hex && 
+                mapping.name === fromAllMatch.name &&
+                mapping.producer === fromAllMatch.producer;
+            
             container.addEventListener('mouseenter', () => {
-                if (!mapping || !mapping.fromAll) {
+                if (!isHighlighted) {
                     buyBtn.style.display = 'flex';
                 }
             });
@@ -1066,7 +1079,7 @@ export function loadPlanningTable(preserveMode = false) {
                 if (fromAllMatch && addToShoppingCart) {
                     addToShoppingCart(fromAllMatch);
                 }
-                saveMapping(color.hex, 'fromAll', fromAllMatch);
+                setColorMapping(color.hex, fromAllMatch);
                 updatePlanningTable();
             });
             
@@ -1079,13 +1092,413 @@ export function loadPlanningTable(preserveMode = false) {
         return cell;
     }
     
+    // Helper function to sort paints by similarity to target color
+    function sortPaintsBySimilarity(paints, targetColor) {
+        const targetHSV = rgbToHSV(targetColor.r, targetColor.g, targetColor.b);
+        
+        return paints.map(paint => {
+            const rgb = hexToRgb(paint.hex);
+            if (!rgb) return { paint, distance: Infinity };
+            
+            const candidateHSV = rgbToHSV(rgb.r, rgb.g, rgb.b);
+            const distance = hsvDistance(targetHSV, candidateHSV);
+            
+            return { paint, distance };
+        }).sort((a, b) => a.distance - b.distance).map(item => item.paint);
+    }
+    
+    // Helper function to create edit mode manual cell
+    function createEditModeManualCell(color, mapping, candidate1Match, candidate2Match, fromAllMatch) {
+        const cell = document.createElement('td');
+        cell.style.position = 'relative';
+        
+        // Only show manual paint if it's NOT a mixing scheme and NOT in any other column
+        const isMixing = isMixingScheme(mapping);
+        const assignedPaint = isMixing ? null : getAssignedPaint(mapping);
+        
+        // Check if assigned paint matches any of the other columns
+        let isInOtherColumn = false;
+        if (assignedPaint) {
+            // Check if it matches Candidate 1
+            if (candidate1Match && assignedPaint.hex === candidate1Match.hex && 
+                assignedPaint.name === candidate1Match.name && 
+                assignedPaint.producer === candidate1Match.producer) {
+                isInOtherColumn = true;
+            }
+            // Check if it matches Candidate 2
+            if (!isInOtherColumn && candidate2Match && assignedPaint.hex === candidate2Match.hex && 
+                assignedPaint.name === candidate2Match.name && 
+                assignedPaint.producer === candidate2Match.producer) {
+                isInOtherColumn = true;
+            }
+            // Check if it matches From All
+            if (!isInOtherColumn && fromAllMatch && assignedPaint.hex === fromAllMatch.hex && 
+                assignedPaint.name === fromAllMatch.name && 
+                assignedPaint.producer === fromAllMatch.producer) {
+                isInOtherColumn = true;
+            }
+        }
+        
+        // Only show paint if it exists and is NOT in any other column
+        const showPaint = assignedPaint && !isInOtherColumn;
+        
+        // Highlight if paint is shown
+        if (showPaint) {
+            cell.classList.add('planning-cell-highlight');
+        }
+        
+        if (showPaint) {
+            // Show color box with edit icon on hover
+            const container = document.createElement('div');
+            container.className = 'candidate-container';
+            container.style.position = 'relative';
+            container.style.display = 'flex';
+            container.style.alignItems = 'center';
+            
+            const colorBox = document.createElement('div');
+            colorBox.className = 'color-box';
+            colorBox.style.backgroundColor = assignedPaint.hex;
+            colorBox.style.width = '40px';
+            colorBox.style.height = '40px';
+            colorBox.style.position = 'relative';
+            colorBox.style.cursor = 'pointer';
+            addGradientClickToColorBox(colorBox, assignedPaint.hex);
+            colorBox.dataset.colorName = assignedPaint.name || '';
+            colorBox.dataset.colorType = Array.isArray(assignedPaint.type) ? assignedPaint.type.join(', ') : (assignedPaint.type || '');
+            colorBox.dataset.colorProducer = assignedPaint.producer || '';
+            addHoverTooltipToColorBox(colorBox);
+            
+            // Edit icon on hover
+            const editIcon = document.createElement('button');
+            editIcon.className = 'planning-manual-edit-icon';
+            editIcon.type = 'button';
+            editIcon.innerHTML = '✎';
+            editIcon.style.display = 'none';
+            editIcon.style.position = 'absolute';
+            editIcon.style.top = '50%';
+            editIcon.style.left = '50%';
+            editIcon.style.transform = 'translate(-50%, -50%)';
+            editIcon.style.background = 'rgba(102, 126, 234, 0.9)';
+            editIcon.style.color = 'white';
+            editIcon.style.border = 'none';
+            editIcon.style.borderRadius = '4px';
+            editIcon.style.padding = '4px 8px';
+            editIcon.style.cursor = 'pointer';
+            editIcon.style.zIndex = '10';
+            editIcon.style.fontSize = '14px';
+            
+            const openManualSelect = () => {
+                openManualPaintSelectModal(color, assignedPaint);
+            };
+            
+            colorBox.addEventListener('mouseenter', () => {
+                editIcon.style.display = 'block';
+            });
+            colorBox.addEventListener('mouseleave', () => {
+                editIcon.style.display = 'none';
+            });
+            
+            editIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openManualSelect();
+            });
+            
+            colorBox.addEventListener('click', (e) => {
+                if (e.target !== editIcon) {
+                    openManualSelect();
+                }
+            });
+            
+            colorBox.appendChild(editIcon);
+            container.appendChild(colorBox);
+            cell.appendChild(container);
+        } else {
+            // Show Choose button
+            const chooseBtn = document.createElement('button');
+            chooseBtn.className = 'planning-choose-btn';
+            chooseBtn.type = 'button';
+            chooseBtn.textContent = 'Choose';
+            chooseBtn.style.display = 'block';
+            chooseBtn.style.padding = '8px 16px';
+            chooseBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            chooseBtn.style.color = 'white';
+            chooseBtn.style.border = 'none';
+            chooseBtn.style.borderRadius = '4px';
+            chooseBtn.style.cursor = 'pointer';
+            chooseBtn.addEventListener('click', () => {
+                openManualPaintSelectModal(color, null);
+            });
+            cell.appendChild(chooseBtn);
+        }
+        
+        return cell;
+    }
+    
+    // Function to load manual select table (exported for filter changes)
+    function loadManualSelectTable() {
+        const modal = document.getElementById('planningManualSelectModal');
+        if (!modal) return;
+        
+        const table = document.getElementById('planningManualSelectTable');
+        const tbody = table ? table.querySelector('tbody') : null;
+        if (!tbody) return;
+        
+        // Get the palette color from stored state (we'll need to store it)
+        const storedPaletteColor = window.currentManualSelectPaletteColor;
+        if (!storedPaletteColor) return;
+        
+        // Load and sort paints by similarity
+        let paints = getMergedPaintColors();
+        if (!paints || paints.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No colors available</td></tr>';
+            return;
+        }
+        
+        // Apply filters
+        const filterContainer = document.getElementById('planningManualSelectFilters');
+        if (filterContainer) {
+            paints = filterData(paints, 'planningManualSelectFilters');
+        }
+        
+        // Sort by similarity to palette color
+        paints = sortPaintsBySimilarity(paints, storedPaletteColor);
+        
+        tbody.innerHTML = '';
+        
+        if (paints.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No colors match the filters</td></tr>';
+            return;
+        }
+        
+        paints.forEach(paint => {
+            const row = document.createElement('tr');
+            row.className = 'color-select-row';
+            
+            // Color cell
+            const colorCell = document.createElement('td');
+            const colorBox = document.createElement('div');
+            colorBox.className = 'color-box';
+            colorBox.style.backgroundColor = paint.hex;
+            colorBox.style.width = '40px';
+            colorBox.style.height = '40px';
+            colorBox.style.display = 'inline-block';
+            addGradientClickToColorBox(colorBox, paint.hex);
+            colorCell.appendChild(colorBox);
+            row.appendChild(colorCell);
+            
+            // Name cell
+            const nameCell = document.createElement('td');
+            nameCell.textContent = paint.name || paint.hex;
+            row.appendChild(nameCell);
+            
+            // Type cell
+            const typeCell = document.createElement('td');
+            typeCell.textContent = Array.isArray(paint.type) ? paint.type.join(', ') : (paint.type || '');
+            row.appendChild(typeCell);
+            
+            // Producer cell
+            const producerCell = document.createElement('td');
+            producerCell.textContent = paint.producer || '';
+            row.appendChild(producerCell);
+            
+            // Add check icon (green circle) for pre-selecting paint (shown on hover)
+            const selectBtn = document.createElement('button');
+            selectBtn.className = 'select-color-btn';
+            selectBtn.type = 'button';
+            selectBtn.title = 'Select';
+            selectBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+            selectBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Pre-select this paint
+                currentManualSelectedPaint = paint;
+                
+                // Show selected paint color box in header
+                const selectedColorBox = document.getElementById('planningManualSelectedColorBox');
+                if (selectedColorBox) {
+                    selectedColorBox.style.display = 'block';
+                    selectedColorBox.style.backgroundColor = paint.hex;
+                }
+                
+                // Show Use button
+                const useBtn = document.getElementById('planningManualUseBtn');
+                if (useBtn) {
+                    useBtn.style.display = 'block';
+                }
+                
+                // Update row highlights (remove from all, add to selected)
+                const allRows = tbody.querySelectorAll('tr');
+                allRows.forEach(r => r.classList.remove('selected-row'));
+                row.classList.add('selected-row');
+            });
+            row.appendChild(selectBtn);
+            
+            // Add tooltip data
+            colorBox.dataset.colorName = paint.name || '';
+            colorBox.dataset.colorType = Array.isArray(paint.type) ? paint.type.join(', ') : (paint.type || '');
+            colorBox.dataset.colorProducer = paint.producer || '';
+            addHoverTooltipToColorBox(colorBox);
+            
+            tbody.appendChild(row);
+        });
+    }
+    
+    // Export for filter changes
+    window.loadPlanningManualSelectTable = loadManualSelectTable;
+    
+    // Store selected paint for manual selection modal
+    let currentManualSelectedPaint = null;
+    
+    // Helper function to open manual paint select modal
+    function openManualPaintSelectModal(paletteColor, currentPaint) {
+        // Store palette color for filter changes
+        window.currentManualSelectPaletteColor = paletteColor;
+        // Reset selected paint
+        currentManualSelectedPaint = null;
+        // Create or get modal (we'll reuse the custom mix color select modal structure)
+        let modal = document.getElementById('planningManualSelectModal');
+        
+        if (!modal) {
+            // Create modal structure (similar to customMixColorSelectModal)
+            modal = document.createElement('div');
+            modal.id = 'planningManualSelectModal';
+            modal.className = 'custom-mix-color-select-modal';
+            modal.innerHTML = `
+                <div class="custom-mix-color-select-content">
+                    <div class="custom-mix-color-select-header">
+                        <h3>Select Paint</h3>
+                        <div class="planning-manual-select-header-buttons">
+                            <button class="use-mix-btn" id="planningManualUseBtn" type="button" style="display: none;">Use</button>
+                            <button id="closePlanningManualSelectModal" type="button" class="close-color-select-btn">&times;</button>
+                        </div>
+                    </div>
+                    <div class="planning-manual-result-section">
+                        <div class="custom-mix-palette-color-box" id="planningManualPaletteColorBox" style="display: none;"></div>
+                        <div class="custom-mix-result-box" id="planningManualSelectedColorBox" style="display: none;"></div>
+                    </div>
+                    <div class="custom-mix-color-select-body">
+                        <div class="filter-container" id="planningManualSelectFilters">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                        <div class="color-select-table-container">
+                            <table id="planningManualSelectTable">
+                                <thead>
+                                    <tr>
+                                        <th>Color</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Producer</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Setup close button
+            const closeBtn = document.getElementById('closePlanningManualSelectModal');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    modal.classList.remove('active');
+                    if (window.ungreyOtherWheels) {
+                        window.ungreyOtherWheels();
+                    }
+                });
+            }
+            
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                    if (window.ungreyOtherWheels) {
+                        window.ungreyOtherWheels();
+                    }
+                }
+            });
+            
+            // Setup Use button
+            const useBtn = document.getElementById('planningManualUseBtn');
+            if (useBtn) {
+                useBtn.addEventListener('click', () => {
+                    if (!window.currentManualSelectPaletteColor || !currentManualSelectedPaint) {
+                        return;
+                    }
+                    
+                    // Assign the selected paint to the palette color
+                    setColorMapping(window.currentManualSelectPaletteColor.hex, currentManualSelectedPaint);
+                    
+                    // Close modal
+                    modal.classList.remove('active');
+                    if (window.ungreyOtherWheels) {
+                        window.ungreyOtherWheels();
+                    }
+                    
+                    // Update planning table
+                    if (window.updatePlanningTable) {
+                        window.updatePlanningTable();
+                    }
+                });
+            }
+        }
+        
+        // Show palette color box
+        const paletteColorBox = document.getElementById('planningManualPaletteColorBox');
+        if (paletteColorBox && paletteColor) {
+            paletteColorBox.style.display = 'block';
+            paletteColorBox.style.backgroundColor = paletteColor.hex;
+        } else if (paletteColorBox) {
+            paletteColorBox.style.display = 'none';
+        }
+        
+        // Hide selected paint color box initially
+        const selectedColorBox = document.getElementById('planningManualSelectedColorBox');
+        if (selectedColorBox) {
+            selectedColorBox.style.display = 'none';
+        }
+        
+        // Hide Use button initially
+        const useBtn = document.getElementById('planningManualUseBtn');
+        if (useBtn) {
+            useBtn.style.display = 'none';
+        }
+        
+        // Create filters if needed
+        const filterContainer = document.getElementById('planningManualSelectFilters');
+        if (filterContainer) {
+            filterContainer.innerHTML = '';
+            createFilterCheckboxes('planningManualSelectFilters');
+        }
+        
+        // Show modal first, then load table (so modal.classList.contains('active') check works)
+        modal.classList.add('active');
+        if (window.greyOutOtherWheels) {
+            window.greyOutOtherWheels();
+        }
+        
+        // Load table after modal is shown
+        loadManualSelectTable();
+        
+        // Show color select wheel if available
+        if (window.showColorSelectWheel) {
+            window.showColorSelectWheel();
+        }
+    }
+    
     // Helper function to create edit mode mixing cell
     function createEditModeMixingCell(color, candidate1Match, candidate2Match, fromAllMatch, mapping) {
         const cell = document.createElement('td');
         cell.className = 'planning-mixing-cell';
         cell.style.position = 'relative';
         
-        const mixingScheme = mapping?.mixingScheme;
+        const mixingScheme = isMixingScheme(mapping) ? mapping : null;
         
         // Highlight if mixing scheme exists
         if (mixingScheme) {
@@ -1198,9 +1611,6 @@ export function initSortOrder(dependencies = {}) {
     if (dependencies.sortPaletteByHSV) {
         sortPaletteByHSV = dependencies.sortPaletteByHSV;
     }
-    if (dependencies.savePalette) {
-        savePalette = dependencies.savePalette;
-    }
     if (dependencies.loadPalette) {
         loadPalette = dependencies.loadPalette;
     }
@@ -1224,23 +1634,18 @@ export function initSaturationThreshold() {
 
 // Check and set planning mode based on mappings
 export function checkAndSetPlanningMode() {
-    const paletteId = getCurrentPaletteId();
-    const mappings = getPlanningMappings();
+    const mappings = getPalleteWithMappings();
     
     let newMode = 'edit'; // Default to edit
     
-    if (paletteId && mappings && mappings[paletteId]) {
-        const paletteMappings = mappings[paletteId];
-        
-        // Check if there's at least one mapping
-        const hasMapping = Object.keys(paletteMappings).some(colorHex => {
-            const mapping = paletteMappings[colorHex];
-            return mapping && (mapping.candidate1 || mapping.candidate2 || mapping.fromAll || mapping.mixingScheme);
-        });
-        
-        if (hasMapping) {
-            newMode = 'view';
-        }
+    // Check if there's at least one mapping
+    const hasMapping = Object.keys(mappings).some(colorHex => {
+        const mappingItem = mappings[colorHex];
+        return mappingItem && mappingItem.mapping !== null;
+    });
+    
+    if (hasMapping) {
+        newMode = 'view';
     }
     
     const oldMode = getPlanningMode();
@@ -1257,6 +1662,7 @@ export function checkAndSetPlanningMode() {
 function initPlanningAddColorModal() {
     const modal = document.getElementById('planningAddColorModal');
     const addBtn = document.getElementById('planningAddBtn');
+    const paletteEditorAddBtn = document.getElementById('paletteEditorAddBtn');
     const closeBtn = document.getElementById('closePlanningAddColorModal');
     const canvas = document.getElementById('planningAddColorWheelCanvas');
     const valueSlider = document.getElementById('planningValueSlider');
@@ -1264,7 +1670,12 @@ function initPlanningAddColorModal() {
     const colorPreview = document.getElementById('planningColorPreview');
     const useBtn = document.getElementById('planningUseColorBtn');
     
-    if (!modal || !addBtn || !closeBtn || !canvas || !valueSlider || !valueDisplay || !colorPreview || !useBtn) {
+    if (!modal || !closeBtn || !canvas || !valueSlider || !valueDisplay || !colorPreview || !useBtn) {
+        return;
+    }
+    
+    // Either button can open the modal
+    if (!addBtn && !paletteEditorAddBtn) {
         return;
     }
     
@@ -1374,8 +1785,8 @@ function initPlanningAddColorModal() {
         updateColorPreview();
     });
     
-    // Open modal
-    addBtn.addEventListener('click', () => {
+    // Function to open modal
+    const openModal = () => {
         // Grey out other wheels
         if (window.greyOutOtherWheels) {
             window.greyOutOtherWheels();
@@ -1393,7 +1804,17 @@ function initPlanningAddColorModal() {
         updateColorPreview();
         
         modal.classList.add('active');
-    });
+    };
+    
+    // Open modal from Planning tab button
+    if (addBtn) {
+        addBtn.addEventListener('click', openModal);
+    }
+    
+    // Open modal from Palette Editor button
+    if (paletteEditorAddBtn) {
+        paletteEditorAddBtn.addEventListener('click', openModal);
+    }
     
     // Close modal
     closeBtn.addEventListener('click', () => {

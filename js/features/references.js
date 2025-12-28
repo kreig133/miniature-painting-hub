@@ -2,28 +2,37 @@
  * References feature - displays uploaded images gallery
  */
 
-import { getCurrentPaletteId } from '../core/state.js';
-import { loadModelImages, saveModelImages } from '../utils/storage.js';
+import { getCurrentModelId, getCurrentModel, updateCurrentModel } from '../core/state.js';
+import { getImage, getImages, deleteImage } from '../utils/imageStorage.js';
 
 // Image view modal state
 let currentImageIndex = -1;
 let currentImagesList = [];
 
 // Load and display references gallery
-export function loadReferencesGallery() {
+export async function loadReferencesGallery() {
     const gallery = document.getElementById('referencesGallery');
     if (!gallery) return;
     
     gallery.innerHTML = '';
     
-    const currentId = getCurrentPaletteId();
-    if (!currentId) {
+    const model = getCurrentModel();
+    if (!model) {
         gallery.innerHTML = '<div class="references-gallery-empty">No model selected</div>';
         currentImagesList = [];
         return;
     }
     
-    const images = loadModelImages(currentId);
+    const imageIds = model.references || [];
+    
+    if (imageIds.length === 0) {
+        gallery.innerHTML = '<div class="references-gallery-empty">No images uploaded yet. Upload images using "Choose Image" in Palette Editor.</div>';
+        currentImagesList = [];
+        return;
+    }
+    
+    // Load images from IndexedDB
+    const images = await getImages(imageIds);
     currentImagesList = images; // Store for modal navigation
     
     if (images.length === 0) {
@@ -58,7 +67,7 @@ export function loadReferencesGallery() {
         removeBtn.title = 'Remove image';
         removeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            removeReferenceImage(currentId, image.id);
+            removeReferenceImage(image.id);
         });
         galleryItem.appendChild(removeBtn);
         
@@ -206,10 +215,28 @@ function initImageViewModal() {
 }
 
 // Remove a reference image
-function removeReferenceImage(paletteId, imageId) {
-    const images = loadModelImages(paletteId);
-    const filteredImages = images.filter(img => img.id !== imageId);
-    saveModelImages(paletteId, filteredImages);
+async function removeReferenceImage(imageId) {
+    const model = getCurrentModel();
+    if (!model) return;
+    
+    // Delete image from IndexedDB
+    try {
+        await deleteImage(imageId);
+    } catch (error) {
+        console.error('Error deleting image from IndexedDB:', error);
+    }
+    
+    const filteredImageIds = model.references.filter(id => id !== imageId);
+    
+    // If this was the model_image, clear it
+    if (model.model_image === imageId) {
+        updateCurrentModel({ 
+            references: filteredImageIds,
+            model_image: filteredImageIds.length > 0 ? filteredImageIds[0] : null
+        });
+    } else {
+        updateCurrentModel({ references: filteredImageIds });
+    }
     
     // Close modal if it's showing the deleted image
     const modal = document.getElementById('imageViewModal');
@@ -217,10 +244,10 @@ function removeReferenceImage(paletteId, imageId) {
         closeImageViewModal();
     }
     
-    loadReferencesGallery();
+    await loadReferencesGallery();
     // Also update the Current Model tab if it's visible
-    import('../ui/palettesPanel.js').then(({ loadUploadedImages }) => {
-        loadUploadedImages();
+    import('../ui/palettesPanel.js').then(async ({ loadUploadedImages }) => {
+        await loadUploadedImages();
     }).catch(err => {
         console.error('Error loading uploaded images:', err);
     });

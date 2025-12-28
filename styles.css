@@ -802,11 +802,28 @@ header p {
     align-items: center;
     padding: 20px 30px;
     border-bottom: 2px solid #e0e0e0;
+    gap: 20px;
 }
 
 .custom-mix-color-select-header h3 {
     margin: 0;
     color: #667eea;
+}
+
+.planning-manual-result-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 40px;
+    min-height: 200px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.planning-manual-select-header-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
 
 .close-color-select-btn {
@@ -871,11 +888,50 @@ header p {
     cursor: pointer;
 }
 
-#customMixColorSelectTable tbody tr:hover {
+#customMixColorSelectTable tbody tr:hover,
+#planningManualSelectTable tbody tr:hover {
     background: #f8f9fa;
 }
 
-#customMixColorSelectTable tbody tr:hover .select-color-btn {
+#customMixColorSelectTable tbody tr:hover .select-color-btn,
+#planningManualSelectTable tbody tr:hover .select-color-btn {
+    display: flex;
+}
+
+#planningManualSelectTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#planningManualSelectTable thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#planningManualSelectTable th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+}
+
+#planningManualSelectTable td {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#planningManualSelectTable tbody tr {
+    position: relative;
+    cursor: pointer;
+}
+
+#planningManualSelectTable tbody tr.selected-row {
+    background: #e3f2fd;
+}
+
+#planningManualSelectTable tbody tr.selected-row .select-color-btn {
     display: flex;
 }
 

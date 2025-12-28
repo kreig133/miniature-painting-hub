@@ -3,8 +3,7 @@
  */
 
 import { rgbToHSV, generateSplitGradient } from '../utils/colorUtils.js';
-import { savePalette as savePaletteToStorage, savePalettes, saveCurrentPaletteId } from '../utils/storage.js';
-import { state, setPalette, getPalette, getCurrentPaletteId } from '../core/state.js';
+import { state, getPalette as getPaletteFromState, getCurrentModelId, addColorToPalette as addColorToPaletteInState, removeColorFromPalette, updateCurrentModel, getCurrentModel } from '../core/state.js';
 
 let paletteGrid = null;
 let clearPaletteBtn = null;
@@ -31,18 +30,21 @@ export function initPalette(dependencies = {}) {
     if (clearPaletteBtn) {
         clearPaletteBtn.addEventListener('click', () => {
             if (confirm('Are you sure you want to clear your entire palette?')) {
-                setPalette([]);
-                savePalette();
-                loadPalette();
-                
-                // Update planning table
-                if (updatePlanningTable) {
-                    updatePlanningTable();
-                }
-                // Update closest matches when palette is cleared
-                if (state.currentColor) {
-                    if (updateClosestMatches) {
-                        updateClosestMatches();
+                const model = getCurrentModel();
+                if (model) {
+                    model.pallete_with_mappings = {};
+                    updateCurrentModel({ pallete_with_mappings: {} });
+                    loadPalette();
+                    
+                    // Update planning table
+                    if (updatePlanningTable) {
+                        updatePlanningTable();
+                    }
+                    // Update closest matches when palette is cleared
+                    if (state.currentColor) {
+                        if (updateClosestMatches) {
+                            updateClosestMatches();
+                        }
                     }
                 }
             }
@@ -55,7 +57,7 @@ export function loadPalette() {
     if (!paletteGrid) return;
     
     paletteGrid.innerHTML = '';
-    const palette = getPalette();
+    const palette = getPaletteFromState();
     
     if (palette.length === 0) {
         paletteGrid.innerHTML = '<p class="empty-message">No colors saved yet. Upload an image and start picking!</p>';
@@ -80,6 +82,11 @@ export function loadPalette() {
     if (drawPalettePointsOnWheel) {
         drawPalettePointsOnWheel(); // Draw palette points on color wheel
     }
+}
+
+// Export getPalette for external use
+export function getPalette() {
+    return getPaletteFromState();
 }
 
 // Create palette item element
@@ -143,12 +150,7 @@ function createPaletteItem(color, index) {
     const deleteBtn = item.querySelector('.palette-delete');
     deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const palette = getPalette();
-        palette.splice(index, 1);
-        // Re-sort palette after deletion to maintain order
-        const sortedPalette = sortPaletteByHSV(palette, state.sortOrder);
-        setPalette(sortedPalette);
-        savePalette();
+        removeColorFromPalette(color.hex);
         loadPalette();
         
         // Update planning table
@@ -166,28 +168,13 @@ function createPaletteItem(color, index) {
     return item;
 }
 
-// Save palette to localStorage
-export function savePalette() {
-    const palette = getPalette();
-    const currentPaletteId = getCurrentPaletteId();
-    
-    // Update the current palette in state
-    if (currentPaletteId && state.palettes[currentPaletteId]) {
-        state.palettes[currentPaletteId].colors = palette;
-        savePalettes(state.palettes);
-    }
-    
-    // Also save to old format for backward compatibility
-    savePaletteToStorage(palette);
-}
-
 // Update palette name in header
 export function updatePaletteName() {
-    const currentPaletteId = getCurrentPaletteId();
+    const model = getCurrentModel();
     const paletteNameElement = document.getElementById('currentPaletteName');
     
-    if (paletteNameElement && currentPaletteId && state.palettes[currentPaletteId]) {
-        paletteNameElement.textContent = state.palettes[currentPaletteId].name;
+    if (paletteNameElement && model) {
+        paletteNameElement.textContent = model.model_name;
     }
 }
 
@@ -254,30 +241,21 @@ export function sortPaletteByHSV(colors, sortOrder = 'hsv') {
 
 // Add color to palette
 export function addColorToPalette(color) {
-    const palette = getPalette();
-    const exists = palette.some(c => c.hex === color.hex);
+    addColorToPaletteInState(color);
+    loadPalette();
     
-    if (!exists) {
-        palette.push(color);
-        const sortedPalette = sortPaletteByHSV(palette, state.sortOrder);
-        setPalette(sortedPalette);
-        savePalette();
-        loadPalette();
-        
-        // Update planning table
-        if (updatePlanningTable) {
-            updatePlanningTable();
-        }
-        
-        // Update closest matches when palette changes
-        if (state.currentColor) {
-            if (updateClosestMatches) {
-                updateClosestMatches();
-            }
-        }
-        
-        return true;
+    // Update planning table
+    if (updatePlanningTable) {
+        updatePlanningTable();
     }
-    return false;
+    
+    // Update closest matches when palette changes
+    if (state.currentColor) {
+        if (updateClosestMatches) {
+            updateClosestMatches();
+        }
+    }
+    
+    return true;
 }
 
