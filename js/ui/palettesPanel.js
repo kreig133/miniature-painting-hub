@@ -752,24 +752,36 @@ export function switchToPalette(modelId) {
     loadUploadedImages().catch(err => console.error('Error loading uploaded images:', err));
     loadModelImage().catch(err => console.error('Error loading model image:', err));
     
-    // Update References gallery if it's open
-    const referencesTab = document.getElementById('referencesTab');
-    if (referencesTab && referencesTab.classList.contains('active')) {
-        import('../features/references.js').then(async ({ loadReferencesGallery }) => {
-            await loadReferencesGallery();
-        }).catch(err => {
-            console.error('Error loading references gallery:', err);
-        });
+    // Update all Painting tabs with new model data
+    // Update Planning table (Choosing Paints)
+    if (updatePlanningTableCallback) {
+        updatePlanningTableCallback();
     }
+    
+    // Update References gallery
+    import('../features/references.js').then(async ({ loadReferencesGallery }) => {
+        await loadReferencesGallery();
+    }).catch(err => {
+        console.error('Error loading references gallery:', err);
+    });
+    
+    // Update Minipaint gallery
+    import('../features/minipaint.js').then(async ({ loadMinipaintGallery }) => {
+        await loadMinipaintGallery();
+    }).catch(err => {
+        console.error('Error loading minipaint gallery:', err);
+    });
+    
+    // Update Mixing Color table
+    import('../features/mixing.js').then(async ({ loadMixingTable }) => {
+        loadMixingTable();
+    }).catch(err => {
+        console.error('Error loading mixing table:', err);
+    });
     
     // Update model name in header
     if (updatePaletteNameCallback) {
         updatePaletteNameCallback();
-    }
-    
-    // Update planning table with new model data
-    if (updatePlanningTableCallback) {
-        updatePlanningTableCallback();
     }
 }
 

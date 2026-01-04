@@ -521,6 +521,18 @@ header p {
     height: 12px;
 }
 
+/* Shopping cart button on hover in view mode */
+.planning-view-hover-btn {
+    padding: 0;
+    margin: 0;
+    transition: all 0.2s;
+}
+
+.planning-view-hover-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
 /* Custom Mix Button */
 .custom-mix-btn {
     padding: 8px 16px;
@@ -859,6 +871,38 @@ header p {
     padding: 20px;
     overflow-y: auto;
     max-height: calc(90vh - 100px);
+}
+
+.planning-manual-select-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.planning-manual-select-tab {
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #666;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    top: 2px;
+}
+
+.planning-manual-select-tab:hover {
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.planning-manual-select-tab.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    background: transparent;
 }
 
 .color-select-table-container {
@@ -2112,6 +2156,66 @@ header p {
     padding: 10px;
 }
 
+.references-drop-zone {
+    position: relative;
+    border-radius: 12px;
+    border: 2px dashed #cbd5e0;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #f8f9fa;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.references-drop-zone:hover {
+    border-color: #667eea;
+    background: #f0f4ff;
+}
+
+.references-drop-zone.drag-over {
+    border-color: #667eea;
+    background: #e8edff;
+    border-style: solid;
+    transform: scale(1.02);
+}
+
+.references-drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.references-drop-zone-icon {
+    color: #667eea;
+    opacity: 0.6;
+    transition: all 0.3s;
+}
+
+.references-drop-zone:hover .references-drop-zone-icon,
+.references-drop-zone.drag-over .references-drop-zone-icon {
+    opacity: 1;
+    transform: translateY(-4px);
+}
+
+.references-drop-zone-text {
+    color: #667eea;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0.8;
+}
+
+.references-drop-zone:hover .references-drop-zone-text,
+.references-drop-zone.drag-over .references-drop-zone-text {
+    opacity: 1;
+}
+
 .references-gallery-item {
     position: relative;
     border-radius: 12px;
@@ -2403,6 +2507,348 @@ header p {
     color: white;
     font-size: 1.2rem;
     font-weight: 500;
+}
+
+/* Minipaint Editor Modal */
+.minipaint-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10004;
+    justify-content: center;
+    align-items: center;
+}
+
+.minipaint-modal.active {
+    display: flex;
+}
+
+.minipaint-modal-content {
+    background: white;
+    border-radius: 0;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: none;
+    position: relative;
+}
+
+.minipaint-modal-close {
+    background: #ef4444;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.2s;
+    line-height: 1;
+    padding: 0;
+}
+
+.minipaint-modal-close:hover {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+.minipaint-undo-btn {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: #333;
+}
+
+.minipaint-undo-btn:hover:not(:disabled) {
+    background: #f0f0f0;
+    border-color: #667eea;
+}
+
+.minipaint-undo-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.minipaint-undo-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+}
+
+.minipaint-save-btn {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.minipaint-save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.minipaint-add-to-palette-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.minipaint-add-to-palette-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.minipaint-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    gap: 20px;
+}
+
+.minipaint-tool-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.minipaint-tool-btn {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: #333;
+}
+
+.minipaint-tool-btn:hover {
+    background: #f0f0f0;
+    border-color: #667eea;
+}
+
+.minipaint-tool-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+}
+
+.minipaint-tool-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+}
+
+.minipaint-color-source-toggle {
+    margin-right: 10px;
+    padding-right: 10px;
+    border-right: 1px solid #e0e0e0;
+}
+
+.minipaint-toggle-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.minipaint-toggle-label input[type="checkbox"] {
+    display: none;
+}
+
+.minipaint-toggle-slider {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 180px;
+    height: 36px;
+    background: #e0e0e0;
+    border-radius: 18px;
+    transition: background 0.3s;
+    padding: 2px;
+}
+
+.minipaint-toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 82px;
+    height: 32px;
+    background: white;
+    border-radius: 16px;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    left: 2px;
+}
+
+.minipaint-toggle-label input[type="checkbox"]:checked + .minipaint-toggle-slider {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.minipaint-toggle-label input[type="checkbox"]:checked + .minipaint-toggle-slider::before {
+    transform: translateX(94px);
+}
+
+.minipaint-toggle-text {
+    position: absolute;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #666;
+    transition: color 0.3s;
+    pointer-events: none;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.minipaint-toggle-text:first-child {
+    left: 14px;
+}
+
+.minipaint-toggle-text:last-child {
+    right: 14px;
+}
+
+.minipaint-toggle-text-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.minipaint-icon-char {
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.minipaint-toggle-label input[type="checkbox"]:checked + .minipaint-toggle-slider .minipaint-toggle-text:first-child {
+    color: white;
+}
+
+.minipaint-toggle-label input[type="checkbox"]:not(:checked) + .minipaint-toggle-slider .minipaint-toggle-text:last-child {
+    color: white;
+}
+
+.minipaint-palette-colors {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    padding-right: 10px;
+    border-right: 1px solid #e0e0e0;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.minipaint-palette-colors::-webkit-scrollbar {
+    height: 4px;
+}
+
+.minipaint-palette-colors::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+
+.minipaint-palette-colors::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 2px;
+}
+
+.minipaint-palette-colors::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.minipaint-palette-color-box {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.minipaint-palette-color-box:hover {
+    border-color: #667eea;
+    transform: scale(1.1);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.minipaint-tool-group input[type="color"] {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.minipaint-tool-group input[type="range"] {
+    width: 100px;
+}
+
+.minipaint-tool-group span {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    min-width: 30px;
+}
+
+.minipaint-canvas-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+    background: #fafafa;
+    padding: 20px;
+}
+
+.minipaint-canvas-container canvas {
+    border: 1px solid #ddd;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    cursor: crosshair;
 }
 
 .color-card-modal-body {
@@ -3541,11 +3987,21 @@ header p {
 /* Filter Container Styles */
 .filter-container {
     margin-bottom: 20px;
-    margin-top: 45px;
+    margin-top: 20px;
     padding: 15px;
     background-color: #f8f9fa;
     border-radius: 8px;
     border: 1px solid #e0e0e0;
+}
+
+/* Override for planning manual select filters to have more top margin if tabs are present */
+#planningManualSelectFilters {
+    margin-top: 20px;
+}
+
+/* Override for custom mix color select filters to have proper top margin with tabs */
+#customMixColorSelectFilters {
+    margin-top: 20px;
 }
 
 .filter-group {

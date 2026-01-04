@@ -23,10 +23,13 @@ export async function loadReferencesGallery() {
         return;
     }
     
+    // Add drop zone as first item
+    const dropZone = createDropZone();
+    gallery.appendChild(dropZone);
+    
     const imageIds = model.references || [];
     
     if (imageIds.length === 0) {
-        gallery.innerHTML = '<div class="references-gallery-empty">No images uploaded yet. Upload images using "Choose Image" in Palette Editor.</div>';
         currentImagesList = [];
         return;
     }
@@ -36,7 +39,6 @@ export async function loadReferencesGallery() {
     currentImagesList = images; // Store for modal navigation
     
     if (images.length === 0) {
-        gallery.innerHTML = '<div class="references-gallery-empty">No images uploaded yet. Upload images using "Choose Image" in Palette Editor.</div>';
         return;
     }
     
@@ -73,6 +75,83 @@ export async function loadReferencesGallery() {
         
         gallery.appendChild(galleryItem);
     });
+}
+
+// Create drag-and-drop zone
+function createDropZone() {
+    const dropZone = document.createElement('div');
+    dropZone.className = 'references-drop-zone';
+    dropZone.id = 'referencesDropZone';
+    
+    const dropZoneContent = document.createElement('div');
+    dropZoneContent.className = 'references-drop-zone-content';
+    
+    const icon = document.createElement('div');
+    icon.className = 'references-drop-zone-icon';
+    icon.innerHTML = `
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+    `;
+    
+    const text = document.createElement('div');
+    text.className = 'references-drop-zone-text';
+    text.textContent = 'Drop images here';
+    
+    dropZoneContent.appendChild(icon);
+    dropZoneContent.appendChild(text);
+    dropZone.appendChild(dropZoneContent);
+    
+    // Drag and drop event handlers
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('drag-over');
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+        
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length === 0) return;
+        
+        files.forEach(file => {
+            if (file.type.startsWith('image/')) {
+                import('../ui/palettesPanel.js').then(({ saveImageToCurrentModel }) => {
+                    if (saveImageToCurrentModel) {
+                        saveImageToCurrentModel(file).then(() => {
+                            // Reload gallery after saving
+                            loadReferencesGallery();
+                        }).catch(err => {
+                            console.error('Error saving image:', err);
+                        });
+                    }
+                }).catch(err => {
+                    console.error('Error importing saveImageToCurrentModel:', err);
+                });
+            }
+        });
+    });
+    
+    // Click to open file picker
+    dropZone.addEventListener('click', () => {
+        const fileInput = document.getElementById('referenceFileUpload');
+        if (fileInput) {
+            fileInput.click();
+        }
+    });
+    
+    return dropZone;
 }
 
 // Open image view modal
@@ -253,13 +332,19 @@ async function removeReferenceImage(imageId) {
     });
 }
 
+// Track if references feature has been initialized
+let referencesInitialized = false;
+
 // Initialize references feature
 export function initReferences() {
-    // Initialize image view modal
+    // Initialize image view modal (can be called multiple times safely)
     initImageViewModal();
     
-    // Initialize add reference dropdown
-    initAddReferenceDropdown();
+    // Initialize add reference dropdown (only if not already initialized)
+    if (!referencesInitialized) {
+        initAddReferenceDropdown();
+        referencesInitialized = true;
+    }
     
     // Gallery will be loaded when tab is activated
 }
@@ -273,66 +358,97 @@ function initAddReferenceDropdown() {
     const addReferenceLinkBtn = document.getElementById('addReferenceLinkBtn');
     const referenceFileUpload = document.getElementById('referenceFileUpload');
     
-    // Toggle dropdown on button click
+    // Remove any existing event listeners by cloning and replacing the button
+    // (This prevents duplicate listeners if init is called multiple times)
     if (addReferenceBtn && dropdownContainer) {
-        addReferenceBtn.addEventListener('click', (e) => {
+        const newBtn = addReferenceBtn.cloneNode(true);
+        addReferenceBtn.parentNode.replaceChild(newBtn, addReferenceBtn);
+        
+        // Toggle dropdown on button click
+        newBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             dropdownContainer.classList.toggle('active');
         });
     }
     
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (dropdownContainer && !dropdownContainer.contains(e.target)) {
-            dropdownContainer.classList.remove('active');
-        }
-    });
+    // Close dropdown when clicking outside (only add once globally)
+    if (!window.referencesDropdownOutsideClickHandler) {
+        window.referencesDropdownOutsideClickHandler = (e) => {
+            const container = document.querySelector('.add-reference-dropdown');
+            if (container && !container.contains(e.target)) {
+                container.classList.remove('active');
+            }
+        };
+        document.addEventListener('click', window.referencesDropdownOutsideClickHandler);
+    }
     
     // Handle "Add File" option
-    if (addReferenceFileBtn && referenceFileUpload) {
-        addReferenceFileBtn.addEventListener('click', (e) => {
+    const currentFileBtn = document.getElementById('addReferenceFileBtn');
+    if (currentFileBtn && referenceFileUpload) {
+        // Remove old listener by cloning
+        const newFileBtn = currentFileBtn.cloneNode(true);
+        currentFileBtn.parentNode.replaceChild(newFileBtn, currentFileBtn);
+        
+        newFileBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            referenceFileUpload.click();
-            if (dropdownContainer) {
-                dropdownContainer.classList.remove('active');
+            const currentFileInput = document.getElementById('referenceFileUpload');
+            if (currentFileInput) {
+                currentFileInput.click();
             }
+            dropdownContainer.classList.remove('active');
         });
     }
     
     // Handle file upload
-    if (referenceFileUpload) {
-        referenceFileUpload.addEventListener('change', (e) => {
+    const currentFileInput = document.getElementById('referenceFileUpload');
+    if (currentFileInput) {
+        // Remove old listener by cloning
+        const newFileInput = currentFileInput.cloneNode(true);
+        currentFileInput.parentNode.replaceChild(newFileInput, currentFileInput);
+        
+        newFileInput.addEventListener('change', async (e) => {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
             
+            const { saveImageToCurrentModel } = await import('../ui/palettesPanel.js');
+            
             files.forEach(file => {
                 if (file.type.startsWith('image/')) {
-                    import('../ui/palettesPanel.js').then(({ saveImageToCurrentModel }) => {
-                        if (saveImageToCurrentModel) {
-                            saveImageToCurrentModel(file);
-                        }
-                    }).catch(err => {
-                        console.error('Error saving image:', err);
-                    });
+                    if (saveImageToCurrentModel) {
+                        saveImageToCurrentModel(file).then(() => {
+                            // Reload references gallery after saving
+                            loadReferencesGallery();
+                        }).catch(err => {
+                            console.error('Error saving image:', err);
+                        });
+                    }
                 }
             });
             
             // Reset input
-            referenceFileUpload.value = '';
+            newFileInput.value = '';
         });
     }
     
     // Handle "Add Link" option
-    if (addReferenceLinkBtn) {
-        addReferenceLinkBtn.addEventListener('click', (e) => {
+    const currentLinkBtn = document.getElementById('addReferenceLinkBtn');
+    if (currentLinkBtn) {
+        // Remove old listener by cloning
+        const newLinkBtn = currentLinkBtn.cloneNode(true);
+        currentLinkBtn.parentNode.replaceChild(newLinkBtn, currentLinkBtn);
+        
+        newLinkBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (dropdownContainer) {
-                dropdownContainer.classList.remove('active');
-            }
+            dropdownContainer.classList.remove('active');
             
             const imageUrl = prompt('Enter image URL:');
             if (imageUrl && imageUrl.trim() !== '') {
-                addImageFromLink(imageUrl.trim());
+                addImageFromLink(imageUrl.trim()).then(() => {
+                    // Reload references gallery after adding
+                    loadReferencesGallery();
+                }).catch(err => {
+                    console.error('Error adding image from link:', err);
+                });
             }
         });
     }

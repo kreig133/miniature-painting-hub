@@ -722,6 +722,57 @@ export function loadPlanningTable(preserveMode = false) {
                         questionIcon.style.bottom = '2px';
                         questionIcon.style.left = '2px';
                         paintColorBox.appendChild(questionIcon);
+                        
+                        // Add shopping cart button on hover (for view mode)
+                        const shoppingCartBtn = document.createElement('button');
+                        shoppingCartBtn.className = 'planning-paint-status-icon planning-shopping-icon planning-view-hover-btn';
+                        shoppingCartBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+                        shoppingCartBtn.style.position = 'absolute';
+                        shoppingCartBtn.style.bottom = '2px';
+                        shoppingCartBtn.style.right = '2px';
+                        shoppingCartBtn.style.border = 'none';
+                        shoppingCartBtn.style.cursor = 'pointer';
+                        shoppingCartBtn.style.display = 'none';
+                        shoppingCartBtn.title = 'Add to shopping list';
+                        shoppingCartBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            
+                            // Hide tooltip explicitly when clicking the button
+                            if (paintColorBox._tooltipElement) {
+                                paintColorBox._tooltipElement.style.display = 'none';
+                            }
+                            
+                            if (addToShoppingCart && assignedPaint) {
+                                const colorData = {
+                                    name: assignedPaint.name || '',
+                                    hex: assignedPaint.hex,
+                                    type: assignedPaint.type || [],
+                                    producer: assignedPaint.producer || ''
+                                };
+                                if (addToShoppingCart(colorData)) {
+                                    // Reload table to update icon
+                                    if (updateCallback) {
+                                        updateCallback();
+                                    }
+                                }
+                            }
+                        });
+                        paintColorBox.appendChild(shoppingCartBtn);
+                        
+                        // Show/hide shopping cart button on hover
+                        paintColorBox.addEventListener('mouseenter', () => {
+                            shoppingCartBtn.style.display = 'flex';
+                        });
+                        paintColorBox.addEventListener('mouseleave', () => {
+                            shoppingCartBtn.style.display = 'none';
+                        });
+                        
+                        // Hide tooltip when hovering over or clicking the shopping cart button
+                        shoppingCartBtn.addEventListener('mouseenter', () => {
+                            if (paintColorBox._tooltipElement) {
+                                paintColorBox._tooltipElement.style.display = 'none';
+                            }
+                        });
                     }
                 }
                 
@@ -775,6 +826,57 @@ export function loadPlanningTable(preserveMode = false) {
                             questionIcon.style.bottom = '2px';
                             questionIcon.style.left = '2px';
                             paintColorBox.appendChild(questionIcon);
+                            
+                            // Add shopping cart button on hover (for view mode)
+                            const shoppingCartBtn = document.createElement('button');
+                            shoppingCartBtn.className = 'planning-paint-status-icon planning-shopping-icon planning-view-hover-btn';
+                            shoppingCartBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+                            shoppingCartBtn.style.position = 'absolute';
+                            shoppingCartBtn.style.bottom = '2px';
+                            shoppingCartBtn.style.right = '2px';
+                            shoppingCartBtn.style.border = 'none';
+                            shoppingCartBtn.style.cursor = 'pointer';
+                            shoppingCartBtn.style.display = 'none';
+                            shoppingCartBtn.title = 'Add to shopping list';
+                            shoppingCartBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                
+                                // Hide tooltip explicitly when clicking the button
+                                if (paintColorBox._tooltipElement) {
+                                    paintColorBox._tooltipElement.style.display = 'none';
+                                }
+                                
+                                if (addToShoppingCart && singlePaint) {
+                                    const colorData = {
+                                        name: singlePaint.name || '',
+                                        hex: singlePaint.hex,
+                                        type: singlePaint.type || [],
+                                        producer: singlePaint.producer || ''
+                                    };
+                                    if (addToShoppingCart(colorData)) {
+                                        // Reload table to update icon
+                                        if (updateCallback) {
+                                            updateCallback();
+                                        }
+                                    }
+                                }
+                            });
+                            paintColorBox.appendChild(shoppingCartBtn);
+                            
+                            // Show/hide shopping cart button on hover
+                            paintColorBox.addEventListener('mouseenter', () => {
+                                shoppingCartBtn.style.display = 'flex';
+                            });
+                            paintColorBox.addEventListener('mouseleave', () => {
+                                shoppingCartBtn.style.display = 'none';
+                            });
+                            
+                            // Hide tooltip when hovering over or clicking the shopping cart button
+                            shoppingCartBtn.addEventListener('mouseenter', () => {
+                                if (paintColorBox._tooltipElement) {
+                                    paintColorBox._tooltipElement.style.display = 'none';
+                                }
+                            });
                         }
                     }
                     
@@ -1234,6 +1336,9 @@ export function loadPlanningTable(preserveMode = false) {
         return cell;
     }
     
+    // Store active tab for manual select modal
+    let currentManualSelectTab = 'myCollection'; // Default: My Collection
+    
     // Function to load manual select table (exported for filter changes)
     function loadManualSelectTable() {
         const modal = document.getElementById('planningManualSelectModal');
@@ -1247,8 +1352,14 @@ export function loadPlanningTable(preserveMode = false) {
         const storedPaletteColor = window.currentManualSelectPaletteColor;
         if (!storedPaletteColor) return;
         
-        // Load and sort paints by similarity
-        let paints = getMergedPaintColors();
+        // Load paints based on active tab
+        let paints = [];
+        if (currentManualSelectTab === 'myCollection') {
+            paints = getEffectiveMyCollection();
+        } else {
+            paints = getMergedPaintColors();
+        }
+        
         if (!paints || paints.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No colors available</td></tr>';
             return;
@@ -1380,6 +1491,10 @@ export function loadPlanningTable(preserveMode = false) {
                         <div class="custom-mix-result-box" id="planningManualSelectedColorBox" style="display: none;"></div>
                     </div>
                     <div class="custom-mix-color-select-body">
+                        <div class="planning-manual-select-tabs">
+                            <button class="planning-manual-select-tab active" id="planningManualSelectTabMyCollection" data-tab="myCollection" type="button">My Collection</button>
+                            <button class="planning-manual-select-tab" id="planningManualSelectTabAll" data-tab="all" type="button">All</button>
+                        </div>
                         <div class="filter-container" id="planningManualSelectFilters">
                             <!-- Will be populated by JavaScript -->
                         </div>
@@ -1424,10 +1539,14 @@ export function loadPlanningTable(preserveMode = false) {
                 }
             });
             
-            // Setup Use button
+            // Setup Use button (inside modal creation block, but will be set up each time modal opens)
             const useBtn = document.getElementById('planningManualUseBtn');
             if (useBtn) {
-                useBtn.addEventListener('click', () => {
+                // Remove existing listeners by cloning
+                const newUseBtn = useBtn.cloneNode(true);
+                useBtn.parentNode.replaceChild(newUseBtn, useBtn);
+                
+                newUseBtn.addEventListener('click', () => {
                     if (!window.currentManualSelectPaletteColor || !currentManualSelectedPaint) {
                         return;
                     }
@@ -1447,6 +1566,109 @@ export function loadPlanningTable(preserveMode = false) {
                     }
                 });
             }
+            
+            // Setup tab buttons
+            const myCollectionTab = document.getElementById('planningManualSelectTabMyCollection');
+            const allTab = document.getElementById('planningManualSelectTabAll');
+            
+            if (myCollectionTab && allTab) {
+                const switchTab = (tabName) => {
+                    // Update active state
+                    myCollectionTab.classList.toggle('active', tabName === 'myCollection');
+                    allTab.classList.toggle('active', tabName === 'all');
+                    
+                    // Update current tab
+                    currentManualSelectTab = tabName;
+                    
+                    // Reset selected paint
+                    currentManualSelectedPaint = null;
+                    const selectedColorBox = document.getElementById('planningManualSelectedColorBox');
+                    if (selectedColorBox) {
+                        selectedColorBox.style.display = 'none';
+                    }
+                    const useBtn = document.getElementById('planningManualUseBtn');
+                    if (useBtn) {
+                        useBtn.style.display = 'none';
+                    }
+                    
+                    // Reload table with new data source
+                    loadManualSelectTable();
+                };
+                
+                myCollectionTab.addEventListener('click', () => switchTab('myCollection'));
+                allTab.addEventListener('click', () => switchTab('all'));
+            }
+        }
+        
+        // Setup Use button (also when modal already exists - runs every time modal opens)
+        const existingUseBtn = document.getElementById('planningManualUseBtn');
+        if (existingUseBtn) {
+            // Remove existing listeners by cloning
+            const newUseBtn = existingUseBtn.cloneNode(true);
+            existingUseBtn.parentNode.replaceChild(newUseBtn, existingUseBtn);
+            
+            newUseBtn.addEventListener('click', () => {
+                if (!window.currentManualSelectPaletteColor || !currentManualSelectedPaint) {
+                    return;
+                }
+                
+                // Assign the selected paint to the palette color
+                setColorMapping(window.currentManualSelectPaletteColor.hex, currentManualSelectedPaint);
+                
+                // Close modal
+                modal.classList.remove('active');
+                if (window.ungreyOtherWheels) {
+                    window.ungreyOtherWheels();
+                }
+                
+                // Update planning table
+                if (window.updatePlanningTable) {
+                    window.updatePlanningTable();
+                }
+            });
+        }
+        
+        // Setup tab buttons (if modal already exists, ensure they're set up)
+        const myCollectionTab = document.getElementById('planningManualSelectTabMyCollection');
+        const allTab = document.getElementById('planningManualSelectTabAll');
+        
+        if (myCollectionTab && allTab) {
+            // Remove existing listeners by cloning
+            const newMyCollectionTab = myCollectionTab.cloneNode(true);
+            const newAllTab = allTab.cloneNode(true);
+            myCollectionTab.parentNode.replaceChild(newMyCollectionTab, myCollectionTab);
+            allTab.parentNode.replaceChild(newAllTab, allTab);
+            
+            // Reset to default tab (My Collection)
+            currentManualSelectTab = 'myCollection';
+            newMyCollectionTab.classList.add('active');
+            newAllTab.classList.remove('active');
+            
+            const switchTab = (tabName) => {
+                // Update active state
+                newMyCollectionTab.classList.toggle('active', tabName === 'myCollection');
+                newAllTab.classList.toggle('active', tabName === 'all');
+                
+                // Update current tab
+                currentManualSelectTab = tabName;
+                
+                // Reset selected paint
+                currentManualSelectedPaint = null;
+                const selectedColorBox = document.getElementById('planningManualSelectedColorBox');
+                if (selectedColorBox) {
+                    selectedColorBox.style.display = 'none';
+                }
+                const useBtn = document.getElementById('planningManualUseBtn');
+                if (useBtn) {
+                    useBtn.style.display = 'none';
+                }
+                
+                // Reload table with new data source
+                loadManualSelectTable();
+            };
+            
+            newMyCollectionTab.addEventListener('click', () => switchTab('myCollection'));
+            newAllTab.addEventListener('click', () => switchTab('all'));
         }
         
         // Show palette color box

@@ -800,6 +800,27 @@ function initCustomMixModal() {
         });
     });
     
+    // Setup tab buttons for color select modal
+    const myCollectionTab = document.getElementById('customMixColorSelectTabMyCollection');
+    const allTab = document.getElementById('customMixColorSelectTabAll');
+    
+    if (myCollectionTab && allTab) {
+        const switchTab = (tabName) => {
+            // Update active state
+            myCollectionTab.classList.toggle('active', tabName === 'myCollection');
+            allTab.classList.toggle('active', tabName === 'all');
+            
+            // Update current tab
+            currentColorSelectTab = tabName;
+            
+            // Reload table with new data source
+            loadColorSelectTable();
+        };
+        
+        myCollectionTab.addEventListener('click', () => switchTab('myCollection'));
+        allTab.addEventListener('click', () => switchTab('all'));
+    }
+    
     // Close color select modal
     if (closeColorSelectModal) {
         closeColorSelectModal.addEventListener('click', () => {
@@ -1020,10 +1041,22 @@ function initCustomMixModal() {
         }
     }
     
+    // Store active tab for color select modal
+    let currentColorSelectTab = 'myCollection'; // Default: My Collection
+    
     // Open color selection modal
     function openColorSelectModal() {
         if (!colorSelectModal) {
             return;
+        }
+        
+        // Reset to default tab (My Collection)
+        const myCollectionTab = document.getElementById('customMixColorSelectTabMyCollection');
+        const allTab = document.getElementById('customMixColorSelectTabAll');
+        if (myCollectionTab && allTab) {
+            currentColorSelectTab = 'myCollection';
+            myCollectionTab.classList.add('active');
+            allTab.classList.remove('active');
         }
         
         // Grey out other wheels
@@ -1054,8 +1087,14 @@ function initCustomMixModal() {
         
         tbody.innerHTML = '';
         
-        // Get all paint colors (merged)
-        let colors = getMergedPaintColors();
+        // Get colors based on active tab
+        let colors = [];
+        if (currentColorSelectTab === 'myCollection') {
+            colors = getEffectiveMyCollection();
+        } else {
+            colors = getMergedPaintColors();
+        }
+        
         if (!colors || colors.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No colors available</td></tr>';
             return;

@@ -49,6 +49,7 @@ import {
     highlightAndScrollToCollectionItem
 } from './features/colorWheel.js';
 import { initColorCard } from './features/colorCard.js';
+import { initReferences } from './features/references.js';
 
 // Initialize application
 export function init() {
@@ -224,7 +225,9 @@ export function init() {
     // 18. Initialize color card feature
     initColorCard();
     
-    // 19. Load initial data
+    // 19. References feature will be initialized when References tab is activated
+    
+    // 20. Load initial data
     loadPaintColors();
     loadMyCollection();
     // Don't call loadPlanningTable() here - it will be called by checkAndSetPlanningMode()

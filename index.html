@@ -73,6 +73,7 @@
                     <button class="tab-btn active" data-tab="picker" data-parent="painting">Palette Editor</button>
                     <button class="tab-btn" data-tab="planning" data-parent="painting">Choosing Paints</button>
                     <button class="tab-btn" data-tab="references" data-parent="painting">References</button>
+                    <button class="tab-btn" data-tab="minipaint" data-parent="painting">Minipaint</button>
                     <button class="tab-btn" data-tab="mixing" data-parent="painting">Mixing Color</button>
                 </div>
                 <button class="generate-color-card-btn" id="generateColorCardBtn" type="button">Generate Color Card</button>
@@ -242,6 +243,18 @@
                 </div>
             </div>
             
+            <!-- Minipaint Sub-tab -->
+            <div class="sub-tab-content" id="minipaintTab">
+                <div class="references-section">
+                    <div class="references-header">
+                        <h2>Minipaint</h2>
+                    </div>
+                    <div class="references-gallery" id="minipaintGallery">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
             <!-- Image View Modal -->
             <div id="imageViewModal" class="image-view-modal">
                 <button class="image-view-close" id="imageViewClose" type="button">&times;</button>
@@ -249,6 +262,74 @@
                 <button class="image-view-nav image-view-next" id="imageViewNext" type="button">›</button>
                 <div class="image-view-container">
                     <img id="imageViewImg" src="" alt="Reference image">
+                </div>
+            </div>
+            
+            <!-- Minipaint Editor Modal -->
+            <div id="minipaintModal" class="minipaint-modal">
+                <div class="minipaint-modal-content">
+                    <div class="minipaint-toolbar">
+                        <div class="minipaint-tool-group">
+                            <button class="minipaint-tool-btn active" id="minipaintToolBrush" data-tool="brush" type="button" title="Brush">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9.06 2.06A2 2 0 0 1 11 2h2a2 2 0 0 1 1.94 1.06l2.99 8.88A2 2 0 0 1 18 14h-1.5l-1 3H9.5l-1-3H7a2 2 0 0 1-1.94-2.06l2.99-8.88z"></path>
+                                </svg>
+                            </button>
+                            <button class="minipaint-tool-btn" id="minipaintToolEraser" data-tool="eraser" type="button" title="Eraser">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
+                                    <path d="M22 21H7"></path>
+                                    <path d="m5 11 9 9"></path>
+                                </svg>
+                            </button>
+                            <button class="minipaint-tool-btn" id="minipaintToolRectangle" data-tool="rectangle" type="button" title="Rectangle">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                </svg>
+                            </button>
+                            <button class="minipaint-tool-btn" id="minipaintToolCircle" data-tool="circle" type="button" title="Circle">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                </svg>
+                            </button>
+                            <button class="minipaint-tool-btn" id="minipaintToolLine" data-tool="line" type="button" title="Line">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="minipaint-tool-group">
+                            <div class="minipaint-color-source-toggle">
+                                <label class="minipaint-toggle-label">
+                                    <input type="checkbox" id="minipaintColorSourceToggle" checked>
+                                    <span class="minipaint-toggle-slider">
+                                        <span class="minipaint-toggle-text">Palette</span>
+                                        <span class="minipaint-toggle-text minipaint-toggle-text-with-icon">
+                                            Assigned &#128396
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="minipaint-palette-colors" id="minipaintPaletteColors"></div>
+                            <input type="color" id="minipaintColorPicker" value="#000000" title="Color">
+                            <input type="range" id="minipaintBrushSize" min="1" max="50" value="5" title="Brush Size">
+                            <span id="minipaintBrushSizeValue">5</span>
+                            <button class="minipaint-add-to-palette-btn" id="minipaintAddToPaletteBtn" type="button" title="Add to Palette">Add to Palette</button>
+                        </div>
+                        <div class="minipaint-tool-group">
+                            <button class="minipaint-undo-btn" id="minipaintUndoBtn" type="button" title="Undo (Ctrl+Z / Cmd+Z)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 7v6h6"></path>
+                                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+                                </svg>
+                            </button>
+                            <button class="minipaint-save-btn" id="minipaintSaveBtn" type="button" title="Save">Save</button>
+                            <button class="minipaint-modal-close" id="minipaintModalClose" type="button" title="Close">&times;</button>
+                        </div>
+                    </div>
+                    <div class="minipaint-canvas-container">
+                        <canvas id="minipaintCanvas"></canvas>
+                    </div>
                 </div>
             </div>
             
@@ -422,14 +503,18 @@
                 </div>
             </div>
             
-            <!-- Color Selection Modal (for Custom Mix) -->
+            <!-- Paint Selection Modal (for Custom Mix and other places) -->
             <div id="customMixColorSelectModal" class="custom-mix-color-select-modal">
                 <div class="custom-mix-color-select-content">
                     <div class="custom-mix-color-select-header">
-                        <h3>Select Color</h3>
+                        <h3>Select Paint</h3>
                         <button id="closeColorSelectModal" type="button" class="close-color-select-btn">&times;</button>
                     </div>
                     <div class="custom-mix-color-select-body">
+                        <div class="planning-manual-select-tabs">
+                            <button class="planning-manual-select-tab active" id="customMixColorSelectTabMyCollection" data-tab="myCollection" type="button">My Collection</button>
+                            <button class="planning-manual-select-tab" id="customMixColorSelectTabAll" data-tab="all" type="button">All</button>
+                        </div>
                         <div class="filter-container" id="customMixColorSelectFilters">
                             <!-- Will be populated by JavaScript -->
                         </div>

@@ -3,6 +3,7 @@
  */
 
 import { loadReferencesGallery, initReferences } from '../features/references.js';
+import { loadMinipaintGallery, initMinipaint } from '../features/minipaint.js';
 
 export function initTabs() {
     // Handle main tabs (Painting, Collection)
@@ -109,6 +110,14 @@ export function initTabs() {
                         initReferences(); // Initialize modal if not already done
                         loadReferencesGallery().catch(err => {
                             console.error('Error loading references gallery:', err);
+                        });
+                    }
+                    
+                    // If Minipaint tab is activated, load the gallery
+                    if (targetTab === 'minipaint') {
+                        initMinipaint(); // Initialize editor if not already done
+                        loadMinipaintGallery().catch(err => {
+                            console.error('Error loading minipaint gallery:', err);
                         });
                     }
                 }
