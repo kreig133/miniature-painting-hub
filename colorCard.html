@@ -1,0 +1,155 @@
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Card - Model Painting Ultimate Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Color Card Content -->
+    <div class="color-card-modal-content" style="width: 100%; height: 100%; position: fixed; top: 0; left: 0;">
+        <div class="color-card-modal-header">
+            <h3>Color Card</h3>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="color-card-print-btn" id="colorCardPrintBtn" type="button" title="Export to PDF">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                </button>
+                <button class="color-card-modal-close" id="colorCardModalClose" type="button" title="Close">&times;</button>
+            </div>
+        </div>
+        <div class="color-card-export-loading" id="colorCardExportLoading" style="display: none;">
+            <div class="color-card-export-loading-spinner"></div>
+            <div class="color-card-export-loading-text">Exporting to PDF...</div>
+        </div>
+        <div class="color-card-modal-body" id="colorCardModalBody">
+            <div class="color-card-images-container">
+                <!-- Left Image -->
+                <div class="color-card-image-wrapper">
+                    <div class="color-card-image-container-left" id="colorCardImageContainerLeft">
+                        <img id="colorCardImageLeft" src="" alt="Color Card Image Left" class="color-card-image">
+                        <div class="color-boxes-overlay" id="colorBoxesOverlay"></div>
+                    </div>
+                    <div class="color-card-controls">
+                        <button class="color-card-rotate-btn" id="rotateLeftBtn" type="button">Rotate 90°</button>
+                        <div class="color-box-position-controls">
+                            <label>Position:</label>
+                            <button class="position-arrow-btn" id="positionTopBtn" data-position="top" type="button" title="Top">↑</button>
+                            <button class="position-arrow-btn" id="positionLeftBtn" data-position="left" type="button" title="Left">←</button>
+                            <button class="position-arrow-btn" id="positionBottomBtn" data-position="bottom" type="button" title="Bottom">↓</button>
+                            <button class="position-arrow-btn" id="positionRightBtn" data-position="right" type="button" title="Right">→</button>
+                        </div>
+                        <div class="color-box-size-controls">
+                            <label>Size:</label>
+                            <input type="range" id="colorBoxSizeSlider" class="color-box-size-slider" min="0" max="100" value="16">
+                            <span id="colorBoxSizeValue" class="color-box-size-value">16%</span>
+                        </div>
+                        <div class="color-box-padding-controls">
+                            <label>Edge Padding:</label>
+                            <input type="range" id="colorBoxPaddingSlider" class="color-box-size-slider" min="0" max="100" value="8">
+                            <span id="colorBoxPaddingValue" class="color-box-size-value">8px</span>
+                        </div>
+                        <div class="color-box-gap-controls">
+                            <label>Box Gap:</label>
+                            <input type="range" id="colorBoxGapSlider" class="color-box-size-slider" min="0" max="100" value="8">
+                            <span id="colorBoxGapValue" class="color-box-size-value">8px</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Right Image -->
+                <div class="color-card-image-wrapper">
+                    <div class="color-card-image-container-right" id="colorCardImageContainerRight">
+                        <img id="colorCardImageRight" src="" alt="Color Card Image Right" class="color-card-image">
+                        <div class="right-overlay" id="rightOverlay"></div>
+                    </div>
+                    <div class="color-card-controls">
+                        <button class="color-card-rotate-btn" id="rotateRightBtn" type="button">Rotate 90°</button>
+                        <div class="color-box-padding-controls">
+                            <label>Edge Padding:</label>
+                            <input type="range" id="rightOverlayPaddingSlider" class="color-box-size-slider" min="0" max="100" value="25">
+                            <span id="rightOverlayPaddingValue" class="color-box-size-value">10%</span>
+                        </div>
+                        <div class="color-box-padding-controls">
+                            <label>List Scale:</label>
+                            <input type="range" id="rightOverlayListScaleSlider" class="color-box-size-slider" min="50" max="500" value="100">
+                            <span id="rightOverlayListScaleValue" class="color-box-size-value">100%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PDF Export Settings Modal -->
+    <div id="pdfExportSettingsModal" class="pdf-export-settings-modal">
+        <div class="pdf-export-settings-modal-content">
+            <div class="pdf-export-settings-header">
+                <h3>PDF Export Settings</h3>
+                <button class="pdf-export-settings-close" id="pdfExportSettingsClose" type="button">&times;</button>
+            </div>
+            <div class="pdf-export-settings-body">
+                <div class="pdf-export-setting-control">
+                    <label for="pdfResolutionScale">Resolution Scale:</label>
+                    <div class="pdf-export-control-group">
+                        <input type="range" id="pdfResolutionScale" class="pdf-export-slider" min="0.5" max="3" step="0.1" value="1">
+                        <span id="pdfResolutionScaleValue" class="pdf-export-value">1.0</span>
+                    </div>
+                </div>
+                <div class="pdf-export-setting-control">
+                    <label for="pdfPngQuality">PNG Quality:</label>
+                    <div class="pdf-export-control-group">
+                        <input type="range" id="pdfPngQuality" class="pdf-export-slider" min="0.1" max="1" step="0.1" value="1">
+                        <span id="pdfPngQualityValue" class="pdf-export-value">1.0</span>
+                    </div>
+                </div>
+                <div class="pdf-export-setting-control">
+                    <label for="pdfCompressionMode">PNG Compression Mode:</label>
+                    <div class="pdf-export-toggle-group">
+                        <label class="pdf-export-toggle-label">
+                            <input type="checkbox" id="pdfCompressionMode">
+                            <span class="pdf-export-toggle-slider">
+                                <span class="pdf-export-toggle-text">Fast</span>
+                                <span class="pdf-export-toggle-text">Slow</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="pdf-export-settings-footer">
+                <button class="pdf-export-cancel-btn" id="pdfExportCancelBtn" type="button">Cancel</button>
+                <button class="pdf-export-export-btn" id="pdfExportExportBtn" type="button">Export to PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data files (loaded as regular scripts) -->
+    <script src="data/vallejo_model_colours_data.js"></script>
+    <script src="data/vallejo_model_air_colours_data.js"></script>
+    <script src="data/vallejo_game_color_data.js"></script>
+    <script src="data/vallejo_xpress_colors_data.js"></script>
+    <script src="data/army_painter_speedpaint_2.0_data.js"></script>
+    <script src="data/army_painter_warpaints_fanatic_data.js"></script>
+    <script src="data/ak_interactive_3gen_data.js"></script>
+    <script src="data/ak_interactive_quick_gen_data.js"></script>
+    <script src="data/citadel_base_colors_data.js"></script>
+    <script src="data/citadel_layer_colors_data.js"></script>
+    <script src="data/citadel_contrast_colors_data.js"></script>
+    
+    <!-- CIEDE2000 Color Matching Library -->
+    <script src="https://cdn.jsdelivr.net/gh/michel-leonard/ciede2000-color-matching@latest/docs/assets/scripts/ciede-2000.min.js"></script>
+    
+    <!-- html2canvas for capturing DOM elements as images -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Color Card script (ES6 module) -->
+    <script type="module" src="js/colorCardPage.js"></script>
+</body>
+</html>
+

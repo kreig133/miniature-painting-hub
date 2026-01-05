@@ -222,8 +222,7 @@ export function init() {
         addColorToPalette
     });
     
-    // 18. Initialize color card feature
-    initColorCard();
+    // 18. Color Card is now a separate page (colorCard.html)
     
     // 19. References feature will be initialized when References tab is activated
     

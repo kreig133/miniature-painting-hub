@@ -76,7 +76,7 @@
                     <button class="tab-btn" data-tab="minipaint" data-parent="painting">Minipaint</button>
                     <button class="tab-btn" data-tab="mixing" data-parent="painting">Mixing Color</button>
                 </div>
-                <button class="generate-color-card-btn" id="generateColorCardBtn" type="button">Generate Color Card</button>
+                <a href="colorCard.html" class="generate-color-card-btn" id="generateColorCardBtn" type="button">Generate Color Card</a>
             </div>
             
             <!-- Palette Editor Sub-tab -->
@@ -408,6 +408,48 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PDF Export Settings Modal -->
+            <div id="pdfExportSettingsModal" class="pdf-export-settings-modal">
+                <div class="pdf-export-settings-modal-content">
+                    <div class="pdf-export-settings-header">
+                        <h3>PDF Export Settings</h3>
+                        <button class="pdf-export-settings-close" id="pdfExportSettingsClose" type="button">&times;</button>
+                    </div>
+                    <div class="pdf-export-settings-body">
+                        <div class="pdf-export-setting-control">
+                            <label for="pdfResolutionScale">Resolution Scale:</label>
+                            <div class="pdf-export-control-group">
+                                <input type="range" id="pdfResolutionScale" class="pdf-export-slider" min="0.5" max="3" step="0.1" value="1">
+                                <span id="pdfResolutionScaleValue" class="pdf-export-value">1.0</span>
+                            </div>
+                        </div>
+                        <div class="pdf-export-setting-control">
+                            <label for="pdfPngQuality">PNG Quality:</label>
+                            <div class="pdf-export-control-group">
+                                <input type="range" id="pdfPngQuality" class="pdf-export-slider" min="0.1" max="1" step="0.1" value="1">
+                                <span id="pdfPngQualityValue" class="pdf-export-value">1.0</span>
+                            </div>
+                        </div>
+                        <div class="pdf-export-setting-control">
+                            <label for="pdfCompressionMode">PNG Compression Mode:</label>
+                            <div class="pdf-export-toggle-group">
+                                <label class="pdf-export-toggle-label">
+                                    <input type="checkbox" id="pdfCompressionMode">
+                                    <span class="pdf-export-toggle-slider">
+                                        <span class="pdf-export-toggle-text">Fast</span>
+                                        <span class="pdf-export-toggle-text">Slow</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pdf-export-settings-footer">
+                        <button class="pdf-export-cancel-btn" id="pdfExportCancelBtn" type="button">Cancel</button>
+                        <button class="pdf-export-export-btn" id="pdfExportExportBtn" type="button">Export to PDF</button>
                     </div>
                 </div>
             </div>

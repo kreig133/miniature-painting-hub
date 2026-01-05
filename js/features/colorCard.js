@@ -609,12 +609,16 @@ function updateRightOverlay() {
     overlay.appendChild(listContainer);
 }
 
-// Open color card modal
-async function openColorCardModal() {
+// Open color card modal (or initialize standalone page)
+export async function openColorCardModal() {
+    // Check if we're on the standalone page (no modal element)
     const modal = document.getElementById('colorCardModal');
     const modalBody = document.getElementById('colorCardModalBody');
     
-    if (!modal || !modalBody) return;
+    // If on standalone page, modalBody might exist but modal won't
+    const isStandalonePage = !modal && modalBody;
+    
+    if (!modalBody) return;
     
     // Reset rotations
     leftImageRotation = 0;
@@ -643,12 +647,13 @@ async function openColorCardModal() {
         }
         warning.style.display = 'block';
         modalBody.style.padding = '30px';
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        
-        // Grey out other wheels
-        if (window.greyOutOtherWheels) {
-            window.greyOutOtherWheels();
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            // Grey out other wheels
+            if (window.greyOutOtherWheels) {
+                window.greyOutOtherWheels();
+            }
         }
         return;
     }
@@ -667,8 +672,10 @@ async function openColorCardModal() {
     // Reset padding
     modalBody.style.padding = '0';
     
-    // Show modal first so container dimensions are available
-    modal.classList.add('active');
+    // Show modal first so container dimensions are available (if modal exists)
+    if (modal) {
+        modal.classList.add('active');
+    }
     
     // Update existing images
     const leftImg = document.getElementById('colorCardImageLeft');
@@ -704,16 +711,17 @@ async function openColorCardModal() {
     
     // Setup event listeners
     setupColorCardControls();
-    document.body.style.overflow = 'hidden';
-    
-    // Grey out other wheels
-    if (window.greyOutOtherWheels) {
-        window.greyOutOtherWheels();
+    if (modal) {
+        document.body.style.overflow = 'hidden';
+        // Grey out other wheels
+        if (window.greyOutOtherWheels) {
+            window.greyOutOtherWheels();
+        }
     }
 }
 
 // Setup color card controls
-function setupColorCardControls() {
+export function setupColorCardControls() {
     const rotateLeftBtn = document.getElementById('rotateLeftBtn');
     const rotateRightBtn = document.getElementById('rotateRightBtn');
     const positionTopBtn = document.getElementById('positionTopBtn');
@@ -920,8 +928,39 @@ function setupColorCardControls() {
     }
 }
 
+// Show PDF export settings modal
+function showPdfExportSettingsModal() {
+    const modal = document.getElementById('pdfExportSettingsModal');
+    if (!modal) return;
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Reset controls to defaults
+    const resolutionScale = document.getElementById('pdfResolutionScale');
+    const resolutionScaleValue = document.getElementById('pdfResolutionScaleValue');
+    const pngQuality = document.getElementById('pdfPngQuality');
+    const pngQualityValue = document.getElementById('pdfPngQualityValue');
+    const compressionMode = document.getElementById('pdfCompressionMode');
+    
+    if (resolutionScale) resolutionScale.value = '1';
+    if (resolutionScaleValue) resolutionScaleValue.textContent = '1.0';
+    if (pngQuality) pngQuality.value = '1';
+    if (pngQualityValue) pngQualityValue.textContent = '1.0';
+    if (compressionMode) compressionMode.checked = false; // Fast by default (unchecked)
+}
+
+// Close PDF export settings modal
+function closePdfExportSettingsModal() {
+    const modal = document.getElementById('pdfExportSettingsModal');
+    if (!modal) return;
+    
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
 // Export color card to PDF
-async function exportColorCardToPDF() {
+async function exportColorCardToPDF(settings = {}) {
     const leftContainer = document.getElementById('colorCardImageContainerLeft');
     const rightContainer = document.getElementById('colorCardImageContainerRight');
     
@@ -972,11 +1011,14 @@ async function exportColorCardToPDF() {
         
         const { jsPDF } = window.jspdf;
         
-        // Capture with optimized settings - minimal filtering
-        // Since we're capturing the container directly, html2canvas will only process elements inside it
-        // We just need to ensure we don't accidentally capture unwanted elements that might leak in
+        // Get settings from parameters or defaults
+        const resolutionScale = settings.scale !== undefined ? parseFloat(settings.scale) : 1;
+        const pngQuality = settings.pngQuality !== undefined ? parseFloat(settings.pngQuality) : 1.0;
+        const compressionMode = settings.compressionMode !== undefined ? settings.compressionMode : 'FAST';
+        
+        // Capture with user-defined settings
         const captureOptions = {
-            scale: 1,
+            scale: resolutionScale,
             useCORS: true,
             backgroundColor: '#ffffff',
             logging: false,
@@ -1004,8 +1046,8 @@ async function exportColorCardToPDF() {
         });
         
         // Add left image to page 1
-        const leftImgData = leftCanvas.toDataURL('image/png', 1.0);
-        pdf.addImage(leftImgData, 'PNG', 0, 0, leftCanvas.width, leftCanvas.height, undefined, 'FAST');
+        const leftImgData = leftCanvas.toDataURL('image/png', pngQuality);
+        pdf.addImage(leftImgData, 'PNG', 0, 0, leftCanvas.width, leftCanvas.height, undefined, compressionMode);
         
         // Add new page for right image
         pdf.addPage({
@@ -1015,8 +1057,8 @@ async function exportColorCardToPDF() {
         });
         
         // Add right image to page 2
-        const rightImgData = rightCanvas.toDataURL('image/png', 1.0);
-        pdf.addImage(rightImgData, 'PNG', 0, 0, rightCanvas.width, rightCanvas.height, undefined, 'FAST');
+        const rightImgData = rightCanvas.toDataURL('image/png', pngQuality);
+        pdf.addImage(rightImgData, 'PNG', 0, 0, rightCanvas.width, rightCanvas.height, undefined, compressionMode);
         
         // Save PDF
         pdf.save('color-card.pdf');
@@ -1065,10 +1107,98 @@ export function initColorCard() {
     const printBtn = document.getElementById('colorCardPrintBtn');
     const modal = document.getElementById('colorCardModal');
     
-    // Print/Export button click
+    // Print/Export button click - show settings modal (remove existing listeners by cloning)
     if (printBtn) {
-        printBtn.addEventListener('click', () => {
-            exportColorCardToPDF();
+        const newPrintBtn = printBtn.cloneNode(true);
+        printBtn.parentNode.replaceChild(newPrintBtn, printBtn);
+        newPrintBtn.addEventListener('click', () => {
+            showPdfExportSettingsModal();
+        });
+    }
+    
+    // PDF Export Settings Modal
+    const pdfExportSettingsModal = document.getElementById('pdfExportSettingsModal');
+    const pdfExportSettingsClose = document.getElementById('pdfExportSettingsClose');
+    const pdfExportCancelBtn = document.getElementById('pdfExportCancelBtn');
+    const pdfExportExportBtn = document.getElementById('pdfExportExportBtn');
+    const pdfResolutionScale = document.getElementById('pdfResolutionScale');
+    const pdfResolutionScaleValue = document.getElementById('pdfResolutionScaleValue');
+    const pdfPngQuality = document.getElementById('pdfPngQuality');
+    const pdfPngQualityValue = document.getElementById('pdfPngQualityValue');
+    const pdfCompressionMode = document.getElementById('pdfCompressionMode');
+    
+    // Close button - remove existing listeners by cloning
+    if (pdfExportSettingsClose) {
+        const newCloseBtn = pdfExportSettingsClose.cloneNode(true);
+        pdfExportSettingsClose.parentNode.replaceChild(newCloseBtn, pdfExportSettingsClose);
+        newCloseBtn.addEventListener('click', closePdfExportSettingsModal);
+    }
+    
+    // Cancel button - remove existing listeners by cloning
+    if (pdfExportCancelBtn) {
+        const newCancelBtn = pdfExportCancelBtn.cloneNode(true);
+        pdfExportCancelBtn.parentNode.replaceChild(newCancelBtn, pdfExportCancelBtn);
+        newCancelBtn.addEventListener('click', closePdfExportSettingsModal);
+    }
+    
+    // Close on background click - use a flag to prevent duplicate handlers
+    if (pdfExportSettingsModal && !pdfExportSettingsModal.dataset.clickHandlerAttached) {
+        pdfExportSettingsModal.dataset.clickHandlerAttached = 'true';
+        pdfExportSettingsModal.addEventListener('click', (e) => {
+            if (e.target === pdfExportSettingsModal) {
+                closePdfExportSettingsModal();
+            }
+        });
+    }
+    
+    // Close on ESC key - use a single global handler with a flag
+    if (!window.pdfExportEscHandler) {
+        window.pdfExportEscHandler = (e) => {
+            if (e.key === 'Escape' && pdfExportSettingsModal && pdfExportSettingsModal.classList.contains('active')) {
+                closePdfExportSettingsModal();
+            }
+        };
+        document.addEventListener('keydown', window.pdfExportEscHandler);
+    }
+    
+    // Resolution scale slider - remove existing listeners by cloning
+    if (pdfResolutionScale && pdfResolutionScaleValue) {
+        const newScaleSlider = pdfResolutionScale.cloneNode(true);
+        pdfResolutionScale.parentNode.replaceChild(newScaleSlider, pdfResolutionScale);
+        newScaleSlider.addEventListener('input', (e) => {
+            pdfResolutionScaleValue.textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+    
+    // PNG Quality slider - remove existing listeners by cloning
+    if (pdfPngQuality && pdfPngQualityValue) {
+        const newQualitySlider = pdfPngQuality.cloneNode(true);
+        pdfPngQuality.parentNode.replaceChild(newQualitySlider, pdfPngQuality);
+        newQualitySlider.addEventListener('input', (e) => {
+            pdfPngQualityValue.textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+    
+    // Export button - remove existing listeners by cloning
+    if (pdfExportExportBtn) {
+        const newExportBtn = pdfExportExportBtn.cloneNode(true);
+        pdfExportExportBtn.parentNode.replaceChild(newExportBtn, pdfExportExportBtn);
+        newExportBtn.addEventListener('click', () => {
+            // Close settings modal first
+            closePdfExportSettingsModal();
+            
+            // Get settings from controls (need to get fresh references after cloning)
+            const scale = document.getElementById('pdfResolutionScale') ? parseFloat(document.getElementById('pdfResolutionScale').value) : 1;
+            const pngQuality = document.getElementById('pdfPngQuality') ? parseFloat(document.getElementById('pdfPngQuality').value) : 1.0;
+            const compressionModeEl = document.getElementById('pdfCompressionMode');
+            const compressionMode = compressionModeEl && compressionModeEl.checked ? 'SLOW' : 'FAST';
+            
+            // Export with settings
+            exportColorCardToPDF({
+                scale: scale,
+                pngQuality: pngQuality,
+                compressionMode: compressionMode
+            });
         });
     }
     
@@ -1099,6 +1229,105 @@ export function initColorCard() {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
             closeColorCardModal();
+        }
+    });
+}
+
+// Initialize color card page (standalone page)
+export function initColorCardPage() {
+    const closeBtn = document.getElementById('colorCardModalClose');
+    const printBtn = document.getElementById('colorCardPrintBtn');
+    
+    // Close button - navigate back to index.html
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+    }
+    
+    // Print/Export button click - show settings modal
+    if (printBtn) {
+        printBtn.addEventListener('click', () => {
+            showPdfExportSettingsModal();
+        });
+    }
+    
+    // PDF Export Settings Modal handlers
+    const pdfExportSettingsModal = document.getElementById('pdfExportSettingsModal');
+    const pdfExportSettingsClose = document.getElementById('pdfExportSettingsClose');
+    const pdfExportCancelBtn = document.getElementById('pdfExportCancelBtn');
+    const pdfExportExportBtn = document.getElementById('pdfExportExportBtn');
+    const pdfResolutionScale = document.getElementById('pdfResolutionScale');
+    const pdfResolutionScaleValue = document.getElementById('pdfResolutionScaleValue');
+    const pdfPngQuality = document.getElementById('pdfPngQuality');
+    const pdfPngQualityValue = document.getElementById('pdfPngQualityValue');
+    const pdfCompressionMode = document.getElementById('pdfCompressionMode');
+    
+    // Close button
+    if (pdfExportSettingsClose) {
+        pdfExportSettingsClose.addEventListener('click', closePdfExportSettingsModal);
+    }
+    
+    // Cancel button
+    if (pdfExportCancelBtn) {
+        pdfExportCancelBtn.addEventListener('click', closePdfExportSettingsModal);
+    }
+    
+    // Close on background click
+    if (pdfExportSettingsModal && !pdfExportSettingsModal.dataset.clickHandlerAttached) {
+        pdfExportSettingsModal.dataset.clickHandlerAttached = 'true';
+        pdfExportSettingsModal.addEventListener('click', (e) => {
+            if (e.target === pdfExportSettingsModal) {
+                closePdfExportSettingsModal();
+            }
+        });
+    }
+    
+    // Close on ESC key
+    if (!window.pdfExportEscHandler) {
+        window.pdfExportEscHandler = (e) => {
+            if (e.key === 'Escape' && pdfExportSettingsModal && pdfExportSettingsModal.classList.contains('active')) {
+                closePdfExportSettingsModal();
+            }
+        };
+        document.addEventListener('keydown', window.pdfExportEscHandler);
+    }
+    
+    // Resolution scale slider
+    if (pdfResolutionScale && pdfResolutionScaleValue) {
+        pdfResolutionScale.addEventListener('input', (e) => {
+            pdfResolutionScaleValue.textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+    
+    // PNG Quality slider
+    if (pdfPngQuality && pdfPngQualityValue) {
+        pdfPngQuality.addEventListener('input', (e) => {
+            pdfPngQualityValue.textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+    
+    // Export button
+    if (pdfExportExportBtn) {
+        pdfExportExportBtn.addEventListener('click', () => {
+            closePdfExportSettingsModal();
+            
+            const scale = pdfResolutionScale ? parseFloat(pdfResolutionScale.value) : 1;
+            const pngQuality = pdfPngQuality ? parseFloat(pdfPngQuality.value) : 1.0;
+            const compressionMode = pdfCompressionMode && pdfCompressionMode.checked ? 'SLOW' : 'FAST';
+            
+            exportColorCardToPDF({
+                scale: scale,
+                pngQuality: pngQuality,
+                compressionMode: compressionMode
+            });
+        });
+    }
+    
+    // ESC key to go back to index.html (when PDF export modal is not open)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && (!pdfExportSettingsModal || !pdfExportSettingsModal.classList.contains('active'))) {
+            window.location.href = 'index.html';
         }
     });
 }
