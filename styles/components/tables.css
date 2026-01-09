@@ -1,0 +1,47 @@
+/* Generic Table Styles */
+
+/* Table Container */
+.table-container {
+    overflow-x: auto;
+    overflow-y: visible;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+/* Products Table Base */
+#productsTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+#productsTable thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+#productsTable th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+}
+
+#productsTable td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#productsTable tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* Empty Message */
+.empty-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #999;
+    font-style: italic;
+    padding: 40px;
+}
+

@@ -1,0 +1,719 @@
+/* Minipaint Feature Styles */
+
+/* Minipaint Modal, Toolbar, Canvas, Tools */
+/* Minipaint Editor Modal */
+.minipaint-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10004;
+    justify-content: center;
+    align-items: center;
+}
+
+.minipaint-modal.active {
+    display: flex;
+}
+
+.minipaint-modal-content {
+    background: white;
+    border-radius: 0;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: none;
+    position: relative;
+}
+
+.minipaint-modal-close {
+    background: #ef4444;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.2s;
+    line-height: 1;
+    padding: 0;
+}
+
+.minipaint-modal-close:hover {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+.minipaint-undo-btn {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: #333;
+}
+
+.minipaint-undo-btn:hover:not(:disabled) {
+    background: #f0f0f0;
+    border-color: #667eea;
+}
+
+.minipaint-undo-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.minipaint-undo-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+}
+
+.minipaint-save-btn {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.minipaint-save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.minipaint-add-to-palette-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.minipaint-add-to-palette-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.minipaint-invert-btn {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.minipaint-invert-btn:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.minipaint-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    gap: 20px;
+}
+
+.minipaint-tool-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.minipaint-tool-btn {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: #333;
+}
+
+.minipaint-tool-btn:hover {
+    background: #f0f0f0;
+    border-color: #667eea;
+}
+
+.minipaint-tool-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+}
+
+.minipaint-tool-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+}
+
+.minipaint-color-source-toggle {
+    margin-right: 10px;
+    padding-right: 10px;
+    border-right: 1px solid #e0e0e0;
+}
+
+.minipaint-toggle-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.minipaint-toggle-label input[type="checkbox"] {
+    display: none;
+}
+
+.minipaint-toggle-slider {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 180px;
+    height: 36px;
+    background: #e0e0e0;
+    border-radius: 18px;
+    transition: background 0.3s;
+    padding: 2px;
+}
+
+.minipaint-toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 98px;
+    height: 32px;
+    background: white;
+    border-radius: 16px;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    left: 2px;
+}
+
+.minipaint-toggle-label input[type="checkbox"]:checked + .minipaint-toggle-slider {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.minipaint-toggle-label input[type="checkbox"]:checked + .minipaint-toggle-slider::before {
+    transform: translateX(78px);
+}
+
+.minipaint-toggle-text {
+    position: absolute;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #666;
+    transition: color 0.3s;
+    pointer-events: none;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.minipaint-toggle-text:first-child {
+    left: 14px;
+}
+
+.minipaint-toggle-text:last-child {
+    right: 14px;
+}
+
+.minipaint-toggle-text-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.minipaint-icon-char {
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+/* PDF Export Settings Modal */
+.pdf-export-settings-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10004;
+    justify-content: center;
+    align-items: center;
+}
+
+.pdf-export-settings-modal.active {
+    display: flex;
+}
+
+.pdf-export-settings-modal-content {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.pdf-export-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.pdf-export-settings-header h3 {
+    margin: 0;
+    color: #667eea;
+    font-size: 1.3rem;
+}
+
+.pdf-export-settings-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.pdf-export-settings-close:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.pdf-export-settings-body {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.pdf-export-setting-control {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.pdf-export-setting-control label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.pdf-export-control-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.pdf-export-slider {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #e0e0e0;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.pdf-export-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pdf-export-slider::-webkit-slider-thumb:hover {
+    background: #5568d3;
+    transform: scale(1.1);
+}
+
+.pdf-export-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.pdf-export-slider::-moz-range-thumb:hover {
+    background: #5568d3;
+    transform: scale(1.1);
+}
+
+.pdf-export-value {
+    min-width: 50px;
+    text-align: right;
+    font-weight: 600;
+    color: #667eea;
+    font-size: 0.95rem;
+}
+
+.pdf-export-toggle-group {
+    display: flex;
+    align-items: center;
+}
+
+.pdf-export-toggle-label {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.pdf-export-toggle-label input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.pdf-export-toggle-slider {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 120px;
+    height: 36px;
+    background: #e0e0e0;
+    border-radius: 18px;
+    transition: background 0.3s;
+    padding: 2px;
+}
+
+.pdf-export-toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 56px;
+    height: 32px;
+    background: white;
+    border-radius: 16px;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    left: 2px;
+}
+
+.pdf-export-toggle-label input[type="checkbox"]:checked + .pdf-export-toggle-slider::before {
+    transform: translateX(60px);
+}
+
+.pdf-export-toggle-label input[type="checkbox"]:checked + .pdf-export-toggle-slider {
+    background: #667eea;
+}
+
+.pdf-export-toggle-text {
+    position: absolute;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #666;
+    transition: color 0.3s;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.pdf-export-toggle-text:first-child {
+    left: 12px;
+}
+
+.pdf-export-toggle-text:last-child {
+    right: 12px;
+}
+
+.pdf-export-toggle-label input[type="checkbox"]:checked + .pdf-export-toggle-slider .pdf-export-toggle-text:first-child {
+    color: #999;
+}
+
+.pdf-export-toggle-label input[type="checkbox"]:checked + .pdf-export-toggle-slider .pdf-export-toggle-text:last-child {
+    color: white;
+}
+
+.pdf-export-settings-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding: 20px 30px;
+    border-top: 2px solid #e0e0e0;
+}
+
+.pdf-export-cancel-btn,
+.pdf-export-export-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pdf-export-cancel-btn {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.pdf-export-cancel-btn:hover {
+    background: #e0e0e0;
+}
+
+.pdf-export-export-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.pdf-export-export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.minipaint-toggle-label input[type="checkbox"]:checked + .minipaint-toggle-slider .minipaint-toggle-text:first-child {
+    color: white;
+}
+
+.minipaint-toggle-label input[type="checkbox"]:not(:checked) + .minipaint-toggle-slider .minipaint-toggle-text:last-child {
+    color: white;
+}
+
+.minipaint-palette-colors {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    padding-right: 10px;
+    border-right: 1px solid #e0e0e0;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.minipaint-palette-colors::-webkit-scrollbar {
+    height: 4px;
+}
+
+.minipaint-palette-colors::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+
+.minipaint-palette-colors::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 2px;
+}
+
+.minipaint-palette-colors::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.minipaint-palette-color-box {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.minipaint-palette-color-box:hover {
+    border-color: #667eea;
+    transform: scale(1.1);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.minipaint-tool-group input[type="color"] {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.minipaint-tool-group input[type="range"] {
+    width: 100px;
+}
+
+.minipaint-tool-group span {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    min-width: 30px;
+}
+
+.minipaint-content-wrapper {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.minipaint-debug-gallery {
+    width: 200px;
+    background: #f5f5f5;
+    border-right: 1px solid #ddd;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.minipaint-debug-gallery-item {
+    position: relative;
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.minipaint-debug-gallery-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.minipaint-debug-gallery-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 2px;
+}
+
+.minipaint-debug-gallery-item-label {
+    font-size: 0.7rem;
+    color: #666;
+    text-align: center;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.minipaint-debug-gallery-item-download {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(102, 126, 234, 0.9);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+}
+
+.minipaint-debug-gallery-item:hover .minipaint-debug-gallery-item-download {
+    opacity: 1;
+}
+
+.minipaint-debug-gallery-item-download:hover {
+    background: rgba(102, 126, 234, 1);
+}
+
+.minipaint-debug-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.minipaint-canvas-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+    background: #fafafa;
+    padding: 20px;
+    position: relative;
+}
+
+.minipaint-canvas-container canvas {
+    border: 1px solid #ddd;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    cursor: crosshair;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.minipaint-magnifying-glass {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid #333;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    z-index: 1000;
+    overflow: hidden;
+    background: white;
+}
+
+.minipaint-magnifying-glass canvas {
+    width: 100%;
+    height: 100%;
+    border: none;
+    box-shadow: none;
+    border-radius: 50%;
+}
+

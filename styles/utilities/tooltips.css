@@ -1,0 +1,50 @@
+/* Tooltip Styles */
+
+/* Color Tooltip Styles */
+.color-tooltip {
+    display: none;
+    position: fixed;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    z-index: 100000;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 150px;
+    bottom: auto;
+    left: auto;
+    top: auto;
+    right: auto;
+    transform: none;
+}
+
+.color-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+.tooltip-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #fff;
+}
+
+.tooltip-type {
+    font-size: 0.8rem;
+    color: #e0e0e0;
+    margin-bottom: 2px;
+}
+
+.tooltip-producer {
+    font-size: 0.8rem;
+    color: #e0e0e0;
+}
+

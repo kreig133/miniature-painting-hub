@@ -1,0 +1,46 @@
+/* Responsive Media Queries */
+
+/* Media Queries for Mobile and Tablet */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    header h1 {
+        font-size: 2rem;
+    }
+
+    .color-info {
+        flex-direction: column;
+    }
+
+    .color-value {
+        min-width: 100%;
+    }
+
+
+/* Responsive design for palette panel */
+@media (max-width: 1024px) {
+    body.panel-open {
+        padding-left: 20px;
+    }
+    
+    .models-panel {
+        width: 280px;
+    }
+    
+    .models-panel.open {
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    }
+}
+
+
+    .palette-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+
+    #colorWheelCanvas {
+        max-width: 100%;
+    }
+}
+

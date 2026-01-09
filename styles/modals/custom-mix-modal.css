@@ -1,0 +1,319 @@
+/* Custom Mix Modal Styles */
+
+/* Custom Mix Modal, Result Section, Colors Section, Color Selection Modal */
+/* Custom Mix Modal */
+.custom-mix-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+}
+
+.custom-mix-modal.active {
+    display: flex;
+}
+
+.custom-mix-modal-content {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.custom-mix-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.custom-mix-header h2 {
+    margin: 0;
+    color: #667eea;
+}
+
+.custom-mix-header-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.use-mix-btn,
+.add-to-palette-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.add-to-palette-btn:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.use-mix-btn:hover:not(:disabled),
+.add-to-palette-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.close-custom-mix-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.close-custom-mix-btn:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.custom-mix-body {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    overflow-y: auto;
+}
+
+/* Result Section */
+.custom-mix-result-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 40px;
+    min-height: 200px;
+}
+
+.custom-mix-palette-color-box {
+    width: 200px;
+    height: 200px;
+    border-radius: 20px;
+    border: 3px solid #e0e0e0;
+    background: #f5f5f5;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.custom-mix-result-box {
+    width: 200px;
+    height: 200px;
+    border-radius: 20px;
+    border: 3px solid #e0e0e0;
+    background: #f5f5f5;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Colors Section */
+.custom-mix-colors-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.custom-mix-color-square {
+    aspect-ratio: 1;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    position: relative;
+    background: #fafafa;
+}
+
+.add-color-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.add-color-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.color-display {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+}
+
+.color-display-box {
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
+    border: 2px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.color-display-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: center;
+    color: #333;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.color-weight-slider {
+    width: 80%;
+    margin: 10px 0;
+}
+
+.slider-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #667eea;
+}
+
+.remove-color-btn {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    z-index: 10;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.remove-color-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(239, 68, 68, 0.4);
+}
+
+/* Color Selection Modal */
+.custom-mix-color-select-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10001;
+    justify-content: center;
+    align-items: center;
+}
+
+.custom-mix-color-select-modal.active {
+    display: flex;
+}
+
+.custom-mix-color-select-content {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.custom-mix-color-select-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    border-bottom: 2px solid #e0e0e0;
+    gap: 20px;
+}
+
+.custom-mix-color-select-header h3 {
+    margin: 0;
+    color: #667eea;
+}
+
+.planning-manual-result-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 40px;
+    min-height: 200px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.planning-manual-select-header-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.close-color-select-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.close-color-select-btn:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+

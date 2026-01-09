@@ -1,0 +1,89 @@
+/* Filter Styles */
+
+/* Filter Container, Filter Groups, Filter Checkboxes */
+/* Filter Container Styles */
+.filter-container {
+    margin-bottom: 20px;
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+/* Override for planning manual select filters to have more top margin if tabs are present */
+#planningManualSelectFilters {
+    margin-top: 20px;
+}
+
+/* Override for custom mix color select filters to have proper top margin with tabs */
+#customMixColorSelectFilters {
+    margin-top: 20px;
+}
+
+.filter-group {
+    margin-bottom: 15px;
+}
+
+.filter-group:last-child {
+    margin-bottom: 0;
+}
+
+.filter-group-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #333;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.filter-group-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.filter-action-btn {
+    font-size: 0.85rem;
+    color: #667eea;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.filter-action-btn:hover {
+    background-color: #f0f0f0;
+    text-decoration: underline;
+}
+
+.filter-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.filter-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.filter-checkbox-item label {
+    font-size: 0.9rem;
+    color: #555;
+    cursor: pointer;
+    user-select: none;
+}
+

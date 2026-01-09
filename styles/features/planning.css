@@ -1,0 +1,738 @@
+/* Planning / Choosing Paints Feature Styles */
+
+/* Planning Buttons and Status Icons */
+/* Planning mode button */
+.planning-mode-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.planning-mode-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Planning assign button (checkmark) */
+.planning-assign-btn {
+    display: none;
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.candidate-container {
+    position: relative;
+}
+
+.candidate-container:hover .planning-assign-btn {
+    display: flex;
+}
+
+.planning-assign-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.planning-assign-btn:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+}
+
+/* Planning buy button (shopping cart) for From All */
+.planning-buy-btn {
+    display: none;
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.candidate-container:hover .planning-buy-btn {
+    display: flex;
+}
+
+.planning-buy-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.planning-buy-btn:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
+/* Planning Mix Button */
+.planning-mixing-cell {
+    position: relative;
+    min-height: 60px;
+}
+
+.planning-cell-highlight {
+    background-color: #e3f2fd !important; /* Light blue background */
+}
+
+.planning-mix-btn {
+    display: block; /* Always shown in edit mode */
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.planning-mix-btn:hover {
+    transform: translateY(-50%) translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Empty set icon for no mapping */
+.empty-mapping-icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    opacity: 0.5;
+}
+
+/* Planning delete button */
+.planning-delete-btn {
+    display: none;
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.candidate-container:hover .planning-delete-btn {
+    display: flex;
+}
+
+.planning-delete-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.planning-delete-btn:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+/* Planning paint status icons */
+.planning-paint-status-icon {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    pointer-events: auto;
+}
+
+.planning-shopping-icon {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+}
+
+.planning-question-icon {
+    background: #ef4444;
+    color: white;
+}
+
+.planning-paint-status-icon svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* Shopping cart button on hover in view mode */
+.planning-view-hover-btn {
+    padding: 0;
+    margin: 0;
+    transition: all 0.2s;
+}
+
+.planning-view-hover-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
+
+/* Planning Section and Table */
+/* Planning Section */
+/* Vallejo Section */
+.vallejo-section {
+    margin-top: 20px;
+}
+
+.vallejo-section h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+}
+
+#vallejoTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+#vallejoTable thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+#vallejoTable th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+}
+
+#vallejoTable td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#vallejoTable tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.planning-section {
+    margin-top: 20px;
+}
+
+.planning-section h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+}
+
+.table-header-with-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+}
+
+#planningTable thead .sort-order-select {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+#planningTable thead .sort-order-select:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+#planningTable thead .sort-order-select:focus {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+#planningTable thead .sort-order-select option {
+    background: #667eea;
+    color: white;
+}
+
+#planningTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+#planningTable thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+#planningTable th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+}
+
+#planningTable td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.candidate-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.candidate-name-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.candidate-name {
+    font-weight: 500;
+    color: #333;
+    display: block;
+}
+
+#planningTable tbody tr:hover {
+    background: #f8f9fa;
+}
+
+#planningTable tbody tr.highlighted {
+    background: #fff3cd !important;
+    transition: background-color 0.3s ease;
+}
+
+.upload-section {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.upload-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.upload-label:active {
+    transform: translateY(0);
+}
+
+/* Planning Manual Select Modal and Table */
+.planning-manual-result-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 40px;
+    min-height: 200px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.planning-manual-select-header-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.close-color-select-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.close-color-select-btn:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.custom-mix-color-select-body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(90vh - 100px);
+}
+
+.planning-manual-select-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.planning-manual-select-tab {
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #666;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    top: 2px;
+}
+
+.planning-manual-select-tab:hover {
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.planning-manual-select-tab.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    background: transparent;
+}
+
+.color-select-table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 20px;
+}
+
+#customMixColorSelectTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#customMixColorSelectTable thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#customMixColorSelectTable th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+}
+
+#customMixColorSelectTable td {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#customMixColorSelectTable tbody tr {
+    position: relative;
+    cursor: pointer;
+}
+
+#customMixColorSelectTable tbody tr:hover,
+#planningManualSelectTable tbody tr:hover {
+    background: #f8f9fa;
+}
+
+#customMixColorSelectTable tbody tr:hover .select-color-btn,
+#planningManualSelectTable tbody tr:hover .select-color-btn {
+    display: flex;
+}
+
+#planningManualSelectTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#planningManualSelectTable thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#planningManualSelectTable th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+}
+
+#planningManualSelectTable td {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#planningManualSelectTable tbody tr {
+    position: relative;
+    cursor: pointer;
+}
+
+#planningManualSelectTable tbody tr.selected-row {
+    background: #e3f2fd;
+}
+
+#planningManualSelectTable tbody tr.selected-row .select-color-btn {
+    display: flex;
+}
+
+.select-color-btn {
+    display: none;
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+
+/* Planning Add Color Modal */
+/* Planning Add Button */
+.planning-add-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.planning-add-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Planning Add Color Modal */
+.planning-add-color-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+}
+
+.planning-add-color-modal.active {
+    display: flex;
+}
+
+.planning-add-color-modal-content {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.planning-add-color-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.planning-add-color-header h2 {
+    margin: 0;
+    color: #667eea;
+}
+
+.close-planning-add-color-modal {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.close-planning-add-color-modal:hover {
+    background-color: #f0f0f0;
+}
+
+.planning-add-color-body {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.planning-color-wheel-wrapper {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+#planningAddColorWheelCanvas {
+    display: block;
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    border-radius: 10px;
+    cursor: crosshair;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.planning-value-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.planning-value-slider-container label {
+    font-weight: 600;
+    color: #333;
+    min-width: 50px;
+}
+
+.planning-value-slider-container .value-slider {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #000000 0%, #ffffff 100%);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.planning-value-slider-container .value-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.planning-value-slider-container .value-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.planning-value-slider-container span {
+    font-weight: 600;
+    color: #667eea;
+    min-width: 40px;
+    text-align: right;
+}
+
+.planning-color-preview-container {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    justify-content: center;
+}
+
+.planning-color-preview {
+    width: 200px;
+    height: 100px;
+    border-radius: 10px;
+    border: 2px solid #e0e0e0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background-color: #808080;
+}
+
+.planning-use-color-btn {
+    padding: 12px 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
+.planning-use-color-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+}
+
+
