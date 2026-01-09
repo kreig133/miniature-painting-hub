@@ -5,12 +5,14 @@
 import { getCurrentModel, getPalleteWithMappings } from '../core/state.js';
 import { getImages, saveImage } from '../utils/imageStorage.js';
 import { getPalette, addColorToPalette } from './palette.js';
-import { hexToRgb, rgbToHSV } from '../utils/colorUtils.js';
+import { hexToRgb, rgbToHSV, rgbToHex } from '../utils/colorUtils.js';
 
 let currentTool = 'brush';
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
+let prevX = 0;
+let prevY = 0;
 let startX = 0;
 let startY = 0;
 let currentImage = null;
@@ -19,6 +21,15 @@ let ctx = null;
 let historyStack = [];
 let historyIndex = -1;
 const MAX_HISTORY = 50;
+let originalImageWidth = 0;
+let originalImageHeight = 0;
+
+// Selection tool state
+let selectionVertices = [];
+let isSelectionActive = false;
+let isSelectionInverted = false; // Track if selection is inverted (outside instead of inside)
+let lastSelectionClickTime = 0;
+const DOUBLE_CLICK_DELAY = 300; // milliseconds
 
 // Load and display minipaint gallery
 export async function loadMinipaintGallery() {
@@ -69,6 +80,12 @@ export async function loadMinipaintGallery() {
 // Open minipaint editor modal
 function openMinipaintEditor(image) {
     currentImage = image;
+    
+    // Reset selection state
+    clearSelection();
+    // Ensure Fill button is hidden initially
+    updateFillButtonVisibility();
+    
     const modal = document.getElementById('minipaintModal');
     if (!modal) return;
     
@@ -83,22 +100,60 @@ function openMinipaintEditor(image) {
         window.greyOutOtherWheels();
     }
     
+    // Show modal first so container dimensions are available
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
     // Load image onto canvas
     const img = new Image();
     img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
+        // Store original image dimensions
+        originalImageWidth = img.width;
+        originalImageHeight = img.height;
+        
+        // Set canvas internal resolution to image size (for quality)
+        canvas.width = originalImageWidth;
+        canvas.height = originalImageHeight;
+        
+        // Draw image at full resolution
         ctx.drawImage(img, 0, 0);
+        
+        // Calculate display size to fit container - use requestAnimationFrame to ensure modal is rendered
+        requestAnimationFrame(() => {
+            fitCanvasToContainer();
+        });
+        
         // Initialize history with the initial image state
         saveState();
     };
     img.src = image.dataUrl;
     
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    
     // Load palette colors
     loadPaletteColors();
+}
+
+// Fit canvas to container while maintaining aspect ratio
+function fitCanvasToContainer() {
+    if (!canvas || originalImageWidth === 0 || originalImageHeight === 0) return;
+    
+    const container = canvas.parentElement;
+    if (!container) return;
+    
+    // Get available space (accounting for padding)
+    const containerRect = container.getBoundingClientRect();
+    const maxWidth = containerRect.width - 40; // Account for padding
+    const maxHeight = containerRect.height - 40;
+    
+    // Calculate scale to fit while maintaining aspect ratio
+    const scaleX = maxWidth / originalImageWidth;
+    const scaleY = maxHeight / originalImageHeight;
+    const scale = Math.min(scaleX, scaleY, 1); // Don't upscale, only downscale
+    
+    // Set canvas display size via CSS
+    const displayWidth = originalImageWidth * scale;
+    const displayHeight = originalImageHeight * scale;
+    canvas.style.width = displayWidth + 'px';
+    canvas.style.height = displayHeight + 'px';
 }
 
 // Close minipaint editor modal
@@ -118,19 +173,31 @@ function closeMinipaintEditor() {
     currentImage = null;
     historyStack = [];
     historyIndex = -1;
+    originalImageWidth = 0;
+    originalImageHeight = 0;
+    clearSelection();
 }
 
 // Save current canvas state to history
 function saveState() {
     if (!canvas || !ctx) return;
     
+    // Reset composite operation to source-over before saving
+    // This ensures the saved state is correct regardless of current tool
+    const previousCompositeOperation = ctx.globalCompositeOperation;
+    ctx.globalCompositeOperation = 'source-over';
+    
     // Remove any states after current index (for redo functionality, if needed)
     historyStack = historyStack.slice(0, historyIndex + 1);
     
     // Save current state
+    // Note: This should be called BEFORE redrawCanvasWithSelection to avoid saving overlays
     const state = canvas.toDataURL('image/png');
     historyStack.push(state);
     historyIndex++;
+    
+    // Restore previous composite operation
+    ctx.globalCompositeOperation = previousCompositeOperation;
     
     // Limit history size
     if (historyStack.length > MAX_HISTORY) {
@@ -139,6 +206,9 @@ function saveState() {
     }
     
     updateUndoButton();
+    
+    // Update debug gallery if debug mode is enabled
+    updateDebugGallery();
 }
 
 // Save state before starting a new drawing action
@@ -153,11 +223,25 @@ function saveStateBeforeAction() {
 // Restore state from history
 function restoreState() {
     if (historyIndex < 0 || historyIndex >= historyStack.length) return;
+    if (!canvas || !ctx) return;
     
     const img = new Image();
     img.onload = () => {
+        // Reset composite operation to source-over before restoring
+        ctx.globalCompositeOperation = 'source-over';
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
+        
+        // Redraw selection if active
+        if (isSelectionActive && selectionVertices.length > 0) {
+            redrawCanvasWithSelection();
+        }
+        
+        // Update debug gallery if debug mode is enabled
+        updateDebugGallery();
+    };
+    img.onerror = () => {
+        console.error('Error loading image from history');
     };
     img.src = historyStack[historyIndex];
 }
@@ -288,6 +372,7 @@ export function initMinipaint() {
     const colorPicker = document.getElementById('minipaintColorPicker');
     const brushSizeSlider = document.getElementById('minipaintBrushSize');
     const brushSizeValue = document.getElementById('minipaintBrushSizeValue');
+    const invertBtn = document.getElementById('minipaintInvertBtn');
     
     canvas = document.getElementById('minipaintCanvas');
     if (canvas) {
@@ -314,7 +399,27 @@ export function initMinipaint() {
             btn.addEventListener('click', () => {
                 toolButtons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                currentTool = btn.getAttribute('data-tool');
+                const newTool = btn.getAttribute('data-tool');
+                
+                // Clear selection when switching tools (except when switching to selection or fill tool)
+                if (currentTool === 'selection' && newTool !== 'selection' && newTool !== 'fill') {
+                    clearSelection();
+                }
+                
+                currentTool = newTool;
+                
+                // Update cursor based on tool
+                if (canvas) {
+                    if (currentTool === 'colorpicker') {
+                        canvas.style.cursor = 'crosshair';
+                    } else if (currentTool === 'selection') {
+                        canvas.style.cursor = 'crosshair';
+                    } else if (currentTool === 'fill') {
+                        canvas.style.cursor = 'pointer';
+                    } else {
+                        canvas.style.cursor = 'crosshair';
+                    }
+                }
             });
         });
     }
@@ -323,6 +428,15 @@ export function initMinipaint() {
     if (brushSizeSlider && brushSizeValue) {
         brushSizeSlider.addEventListener('input', (e) => {
             brushSizeValue.textContent = e.target.value;
+        });
+    }
+    
+    // Smoothing slider
+    const smoothingSlider = document.getElementById('minipaintSmoothing');
+    const smoothingValue = document.getElementById('minipaintSmoothingValue');
+    if (smoothingSlider && smoothingValue) {
+        smoothingSlider.addEventListener('input', (e) => {
+            smoothingValue.textContent = e.target.value;
         });
     }
     
@@ -379,13 +493,36 @@ export function initMinipaint() {
         });
     }
     
+    // Invert button
+    if (invertBtn) {
+        invertBtn.addEventListener('click', () => {
+            if (isSelectionActive && selectionVertices.length > 0) {
+                invertSelection();
+            }
+        });
+    }
+    
+    // Debug mode toggle
+    const debugModeCheckbox = document.getElementById('minipaintDebugMode');
+    const debugGallery = document.getElementById('minipaintDebugGallery');
+    if (debugModeCheckbox && debugGallery) {
+        debugModeCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                debugGallery.style.display = 'flex';
+                updateDebugGallery();
+            } else {
+                debugGallery.style.display = 'none';
+            }
+        });
+    }
+    
     // Undo button
     if (undoBtn) {
         undoBtn.addEventListener('click', undo);
         updateUndoButton();
     }
     
-    // Keyboard shortcuts (Ctrl+Z / Cmd+Z for undo)
+    // Keyboard shortcuts (Ctrl+Z / Cmd+Z for undo, Esc for clearing selection)
     document.addEventListener('keydown', (e) => {
         const modal = document.getElementById('minipaintModal');
         if (!modal || !modal.classList.contains('active')) return;
@@ -395,6 +532,14 @@ export function initMinipaint() {
             return;
         }
         
+        // Esc key - clear selection (finished or unfinished)
+        if (e.key === 'Escape') {
+            if (selectionVertices.length > 0) {
+                clearSelection();
+                e.preventDefault();
+            }
+        }
+        
         // Ctrl+Z (Windows/Linux) or Cmd+Z (Mac)
         if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
             e.preventDefault();
@@ -402,13 +547,188 @@ export function initMinipaint() {
         }
     });
     
-    // Canvas drawing
+    // Handle window resize to refit canvas
+    let resizeTimeout = null;
+    window.addEventListener('resize', () => {
+        const modal = document.getElementById('minipaintModal');
+        if (!modal || !modal.classList.contains('active')) return;
+        
+        // Debounce resize events
+        if (resizeTimeout) {
+            clearTimeout(resizeTimeout);
+        }
+        resizeTimeout = setTimeout(() => {
+            fitCanvasToContainer();
+        }, 100);
+    });
+    
+    // Canvas drawing and color picker
     if (canvas && ctx) {
-        // Mouse events
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
+        // Initialize magnifying glass for color picker
+        const magnifyingGlass = document.getElementById('minipaintMagnifyingGlass');
+        const magnifyingGlassCanvas = document.getElementById('minipaintMagnifyingGlassCanvas');
+        const canvasContainer = canvas.parentElement;
+        
+        if (magnifyingGlassCanvas) {
+            magnifyingGlassCanvas.width = 120;
+            magnifyingGlassCanvas.height = 120;
+        }
+        
+        let magnifyingGlassAnimationFrame = null;
+        
+        // Mouse move handler for color picker magnifying glass and drawing
+        canvas.addEventListener('mousemove', (e) => {
+            if (currentTool === 'colorpicker') {
+                // Show magnifying glass
+                if (magnifyingGlass && magnifyingGlassCanvas && canvasContainer) {
+                    const rect = canvas.getBoundingClientRect();
+                    const containerRect = canvasContainer.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    const x = Math.floor((e.clientX - rect.left) * scaleX);
+                    const y = Math.floor((e.clientY - rect.top) * scaleY);
+                    
+                    if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+                        const glassSize = 120;
+                        const glassX = e.clientX - containerRect.left - glassSize / 2;
+                        const glassY = e.clientY - containerRect.top - glassSize / 2;
+                        
+                        magnifyingGlass.style.display = 'block';
+                        magnifyingGlass.style.left = glassX + 'px';
+                        magnifyingGlass.style.top = glassY + 'px';
+                        
+                        // Update magnified view
+                        if (magnifyingGlassAnimationFrame) {
+                            cancelAnimationFrame(magnifyingGlassAnimationFrame);
+                        }
+                        
+                        magnifyingGlassAnimationFrame = requestAnimationFrame(() => {
+                            const zoom = 2;
+                            const sourceSize = glassSize / zoom;
+                            const sourceX = x - sourceSize / 2;
+                            const sourceY = y - sourceSize / 2;
+                            
+                            const magCtx = magnifyingGlassCanvas.getContext('2d');
+                            magCtx.clearRect(0, 0, glassSize, glassSize);
+                            magCtx.save();
+                            magCtx.beginPath();
+                            magCtx.arc(glassSize / 2, glassSize / 2, glassSize / 2, 0, 2 * Math.PI);
+                            magCtx.clip();
+                            
+                            magCtx.drawImage(
+                                canvas,
+                                sourceX, sourceY, sourceSize, sourceSize,
+                                0, 0, glassSize, glassSize
+                            );
+                            
+                            // Draw crosshair in center
+                            magCtx.restore();
+                            magCtx.strokeStyle = '#fff';
+                            magCtx.lineWidth = 2;
+                            magCtx.beginPath();
+                            magCtx.moveTo(glassSize / 2 - 10, glassSize / 2);
+                            magCtx.lineTo(glassSize / 2 + 10, glassSize / 2);
+                            magCtx.moveTo(glassSize / 2, glassSize / 2 - 10);
+                            magCtx.lineTo(glassSize / 2, glassSize / 2 + 10);
+                            magCtx.stroke();
+                            magCtx.strokeStyle = '#000';
+                            magCtx.lineWidth = 1;
+                            magCtx.beginPath();
+                            magCtx.moveTo(glassSize / 2 - 10, glassSize / 2);
+                            magCtx.lineTo(glassSize / 2 + 10, glassSize / 2);
+                            magCtx.moveTo(glassSize / 2, glassSize / 2 - 10);
+                            magCtx.lineTo(glassSize / 2, glassSize / 2 + 10);
+                            magCtx.stroke();
+                        });
+                    } else {
+                        if (magnifyingGlass) {
+                            magnifyingGlass.style.display = 'none';
+                        }
+                    }
+                }
+            } else if (currentTool === 'selection') {
+                // Preview selection while drawing (only if selection is not finished)
+                if (selectionVertices.length > 0 && !isSelectionActive) {
+                    drawSelectionPreview(e);
+                } else if (isSelectionActive && selectionVertices.length > 2) {
+                    // Selection is finished - just redraw without preview line
+                    redrawCanvasWithSelection();
+                }
+            } else {
+                // Hide magnifying glass when not using color picker
+                if (magnifyingGlass) {
+                    magnifyingGlass.style.display = 'none';
+                }
+                if (magnifyingGlassAnimationFrame) {
+                    cancelAnimationFrame(magnifyingGlassAnimationFrame);
+                }
+                // Continue with normal drawing
+                draw(e);
+            }
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            if (magnifyingGlass) {
+                magnifyingGlass.style.display = 'none';
+            }
+            if (magnifyingGlassAnimationFrame) {
+                cancelAnimationFrame(magnifyingGlassAnimationFrame);
+            }
+        });
+        
+        // Mouse down handler
+        canvas.addEventListener('mousedown', (e) => {
+            if (currentTool === 'colorpicker') {
+                // Pick color from canvas
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = Math.floor((e.clientX - rect.left) * scaleX);
+                const y = Math.floor((e.clientY - rect.top) * scaleY);
+                
+                if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+                    const pixel = ctx.getImageData(x, y, 1, 1).data;
+                    const r = pixel[0];
+                    const g = pixel[1];
+                    const b = pixel[2];
+                    const hex = rgbToHex(r, g, b);
+                    
+                    // Set the color in the color picker
+                    const colorPicker = document.getElementById('minipaintColorPicker');
+                    if (colorPicker) {
+                        colorPicker.value = hex;
+                        colorPicker.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            } else if (currentTool === 'selection') {
+                handleSelectionClick(e);
+            } else if (currentTool === 'fill') {
+                handleFillClick(e);
+            } else {
+                startDrawing(e);
+            }
+        });
+        
+        // Double click handler for selection
+        canvas.addEventListener('dblclick', (e) => {
+            if (currentTool === 'selection' && selectionVertices.length > 0) {
+                e.preventDefault();
+                // If a vertex was just added, remove it (double-click was quick)
+                const now = Date.now();
+                if (now - lastSelectionClickTime < DOUBLE_CLICK_DELAY && selectionVertices.length > 0) {
+                    selectionVertices.pop(); // Remove the vertex added by the second click
+                }
+                finishSelection();
+            }
+        });
+        
         canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
+        canvas.addEventListener('mouseout', (e) => {
+            stopDrawing(e);
+            if (magnifyingGlass) {
+                magnifyingGlass.style.display = 'none';
+            }
+        });
         
         // Touch events for mobile
         canvas.addEventListener('touchstart', handleTouch);
@@ -451,10 +771,14 @@ function startDrawing(e) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    lastX = (e.clientX - rect.left) * scaleX;
-    lastY = (e.clientY - rect.top) * scaleY;
-    startX = lastX;
-    startY = lastY;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    lastX = x;
+    lastY = y;
+    prevX = x;
+    prevY = y;
+    startX = x;
+    startY = y;
 }
 
 function draw(e) {
@@ -468,8 +792,10 @@ function draw(e) {
     
     const colorPicker = document.getElementById('minipaintColorPicker');
     const brushSizeSlider = document.getElementById('minipaintBrushSize');
+    const smoothingSlider = document.getElementById('minipaintSmoothing');
     const color = colorPicker ? colorPicker.value : '#000000';
     const size = brushSizeSlider ? parseInt(brushSizeSlider.value) : 5;
+    const smoothing = smoothingSlider ? parseInt(smoothingSlider.value) : 50;
     
     ctx.lineWidth = size;
     ctx.lineCap = 'round';
@@ -479,19 +805,70 @@ function draw(e) {
         ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = color;
         ctx.beginPath();
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(currentX, currentY);
-        ctx.stroke();
-        lastX = currentX;
-        lastY = currentY;
+        
+        if (smoothing > 0) {
+            // Enhanced smoothing using quadratic curves with very aggressive smoothing
+            // Use linear scaling for maximum smoothing effect
+            const smoothingFactor = smoothing / 100;
+            const midX = (lastX + currentX) / 2;
+            const midY = (lastY + currentY) / 2;
+            
+            // Control point calculation: pull control point much closer to midpoint for very smooth curves
+            // At max smoothing (100), control point is at 95% towards midpoint for maximum smoothness
+            const controlX = lastX + (midX - lastX) * (0.05 + smoothingFactor * 0.95);
+            const controlY = lastY + (midY - lastY) * (0.05 + smoothingFactor * 0.95);
+            
+            ctx.moveTo(lastX, lastY);
+            ctx.quadraticCurveTo(controlX, controlY, midX, midY);
+            ctx.stroke();
+            
+            // Update points for next iteration
+            prevX = lastX;
+            prevY = lastY;
+            lastX = midX;
+            lastY = midY;
+        } else {
+            // No smoothing - use straight lines
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(currentX, currentY);
+            ctx.stroke();
+            prevX = lastX;
+            prevY = lastY;
+            lastX = currentX;
+            lastY = currentY;
+        }
     } else if (currentTool === 'eraser') {
         ctx.globalCompositeOperation = 'destination-out';
         ctx.beginPath();
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(currentX, currentY);
-        ctx.stroke();
-        lastX = currentX;
-        lastY = currentY;
+        
+        if (smoothing > 0) {
+            // Enhanced smoothing using quadratic curves with very aggressive smoothing
+            const smoothingFactor = smoothing / 100;
+            const midX = (lastX + currentX) / 2;
+            const midY = (lastY + currentY) / 2;
+            
+            // Control point calculation: pull control point much closer to midpoint for very smooth curves
+            const controlX = lastX + (midX - lastX) * (0.05 + smoothingFactor * 0.95);
+            const controlY = lastY + (midY - lastY) * (0.05 + smoothingFactor * 0.95);
+            
+            ctx.moveTo(lastX, lastY);
+            ctx.quadraticCurveTo(controlX, controlY, midX, midY);
+            ctx.stroke();
+            
+            prevX = lastX;
+            prevY = lastY;
+            lastX = midX;
+            lastY = midY;
+        } else {
+            // No smoothing - use straight lines
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(currentX, currentY);
+            ctx.stroke();
+            prevX = lastX;
+            prevY = lastY;
+            lastX = currentX;
+            lastY = currentY;
+        }
     }
     // Rectangle, circle, and line are drawn only on mouseup
 }
@@ -512,18 +889,23 @@ function stopDrawing(e) {
         const size = brushSizeSlider ? parseInt(brushSizeSlider.value) : 5;
         
         ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = color;
-        ctx.lineWidth = size;
-        ctx.lineCap = 'round';
         
         if (currentTool === 'rectangle') {
-            ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+            // Draw filled rectangle
+            ctx.fillStyle = color;
+            ctx.fillRect(startX, startY, currentX - startX, currentY - startY);
         } else if (currentTool === 'circle') {
+            // Draw filled circle
             const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
+            ctx.fillStyle = color;
             ctx.beginPath();
             ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
-            ctx.stroke();
+            ctx.fill();
         } else if (currentTool === 'line') {
+            // Draw stroked line (lines remain as strokes)
+            ctx.strokeStyle = color;
+            ctx.lineWidth = size;
+            ctx.lineCap = 'round';
             ctx.beginPath();
             ctx.moveTo(startX, startY);
             ctx.lineTo(currentX, currentY);
@@ -545,5 +927,502 @@ function handleTouch(e) {
         clientY: touch.clientY
     });
     canvas.dispatchEvent(mouseEvent);
+}
+
+// Selection tool functions
+function handleSelectionClick(e) {
+    // NOTE: Selection tool should NEVER save to history - it only draws overlay
+    // Selection is a visual tool only, not a drawing operation
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    
+    // If there's already a finished selection, check if clicking near the first vertex
+    // Only clear finished selections when clicking away - unfinished selections should continue building
+    if (isSelectionActive && selectionVertices.length > 2) {
+        // Finished selection
+        const firstVertex = selectionVertices[0];
+        const distance = Math.sqrt(Math.pow(x - firstVertex.x, 2) + Math.pow(y - firstVertex.y, 2));
+        
+        if (distance < 10) {
+            // Clicking near first vertex - already finished, do nothing
+            return;
+        } else {
+            // Clicking away from first vertex - clear old finished selection and start new one
+            selectionVertices = [];
+            isSelectionActive = false;
+            isSelectionInverted = false;
+            lastSelectionClickTime = 0;
+            updateInvertButtonVisibility();
+            updateFillButtonVisibility();
+            // Redraw canvas without the old selection
+            redrawCanvasWithSelection();
+            // Continue to add first vertex of new selection below
+        }
+    } else if (!isSelectionActive && selectionVertices.length > 2) {
+        // Unfinished selection (has 3+ vertices but not finished yet)
+        // Check if clicking near first vertex to finish it
+        const firstVertex = selectionVertices[0];
+        const distance = Math.sqrt(Math.pow(x - firstVertex.x, 2) + Math.pow(y - firstVertex.y, 2));
+        if (distance < 10) {
+            // Clicking near first vertex - finish the current selection
+            finishSelection();
+            return;
+        }
+        // Otherwise, continue adding vertices (don't clear)
+    }
+    
+    // Check if this might be part of a double-click
+    const now = Date.now();
+    const isPotentialDoubleClick = (now - lastSelectionClickTime) < DOUBLE_CLICK_DELAY;
+    
+    // Add new vertex
+    selectionVertices.push({ x, y });
+    isSelectionActive = false; // Not finished until double-click or clicking near first vertex
+    updateInvertButtonVisibility();
+    updateFillButtonVisibility();
+    
+    // Update last click time
+    lastSelectionClickTime = now;
+    
+    // Redraw canvas with selection preview
+    redrawCanvasWithSelection();
+    
+    // If this was a potential double-click, wait a bit to see if double-click fires
+    // If double-click fires, it will remove this vertex
+    if (isPotentialDoubleClick) {
+        setTimeout(() => {
+            // If double-click didn't fire, the vertex stays
+            // Just redraw to ensure selection is visible
+            redrawCanvasWithSelection();
+        }, DOUBLE_CLICK_DELAY + 50);
+    }
+}
+
+function finishSelection() {
+    // NOTE: Finishing selection does NOT save to history - selection is visual only
+    
+    if (selectionVertices.length < 3) {
+        // Need at least 3 vertices for a valid polygon
+        clearSelection();
+        return;
+    }
+    
+    // Selection is now complete and active
+    isSelectionActive = true;
+    isSelectionInverted = false; // Reset inversion when finishing a new selection
+    updateInvertButtonVisibility();
+    updateFillButtonVisibility();
+    redrawCanvasWithSelection();
+}
+
+function clearSelection() {
+    selectionVertices = [];
+    isSelectionActive = false;
+    isSelectionInverted = false;
+    lastSelectionClickTime = 0;
+    updateInvertButtonVisibility();
+    updateFillButtonVisibility();
+    
+    // Redraw canvas without selection - get the clean image from history
+    if (canvas && ctx) {
+        const img = new Image();
+        img.onload = () => {
+            // Clear everything first
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Draw the clean image (without any overlays)
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.drawImage(img, 0, 0);
+        };
+        // Always get from history (which should be clean, without overlays)
+        if (historyIndex >= 0 && historyIndex < historyStack.length) {
+            img.src = historyStack[historyIndex];
+        } else if (currentImage) {
+            img.src = currentImage.dataUrl;
+        }
+    }
+}
+
+// Update debug gallery with history images
+function updateDebugGallery() {
+    const debugGallery = document.getElementById('minipaintDebugGallery');
+    const debugModeCheckbox = document.getElementById('minipaintDebugMode');
+    
+    if (!debugGallery || !debugModeCheckbox || !debugModeCheckbox.checked) {
+        return;
+    }
+    
+    // Clear existing gallery items
+    debugGallery.innerHTML = '';
+    
+    // Display all images in history stack
+    historyStack.forEach((imageDataUrl, index) => {
+        const galleryItem = document.createElement('div');
+        galleryItem.className = 'minipaint-debug-gallery-item';
+        
+        const img = document.createElement('img');
+        img.src = imageDataUrl;
+        img.alt = `History state ${index}`;
+        
+        const label = document.createElement('div');
+        label.className = 'minipaint-debug-gallery-item-label';
+        label.textContent = `State ${index}${index === historyIndex ? ' (current)' : ''}`;
+        
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'minipaint-debug-gallery-item-download';
+        downloadBtn.textContent = 'Download';
+        downloadBtn.title = 'Download this state';
+        downloadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            downloadHistoryImage(imageDataUrl, index);
+        });
+        
+        galleryItem.appendChild(img);
+        galleryItem.appendChild(label);
+        galleryItem.appendChild(downloadBtn);
+        
+        debugGallery.appendChild(galleryItem);
+    });
+}
+
+// Download a history image
+function downloadHistoryImage(imageDataUrl, index) {
+    const link = document.createElement('a');
+    link.href = imageDataUrl;
+    link.download = `minipaint-history-state-${index}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function drawSelectionPreview(e) {
+    if (!canvas || !ctx || selectionVertices.length === 0) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const currentX = (e.clientX - rect.left) * scaleX;
+    const currentY = (e.clientY - rect.top) * scaleY;
+    
+    // Redraw canvas with preview line
+    redrawCanvasWithSelection(currentX, currentY);
+}
+
+function redrawCanvasWithSelection(previewX = null, previewY = null) {
+    // NOTE: This function only draws the selection overlay - it does NOT save to history
+    // Selection overlays are temporary visual indicators only
+    
+    if (!canvas || !ctx) return;
+    
+    // Restore canvas from history
+    const img = new Image();
+    img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        
+        drawSelectionOverlay(previewX, previewY, img);
+    };
+    img.onerror = () => {
+        // If image fails to load, still try to draw selection on current canvas
+        drawSelectionOverlay(previewX, previewY, null);
+    };
+    
+    if (historyIndex >= 0 && historyIndex < historyStack.length) {
+        img.src = historyStack[historyIndex];
+    } else if (currentImage) {
+        img.src = currentImage.dataUrl;
+    } else {
+        // No image source, just draw selection on current canvas
+        drawSelectionOverlay(previewX, previewY, null);
+    }
+}
+
+function drawSelectionOverlay(previewX = null, previewY = null, baseImage = null) {
+    if (!canvas || !ctx) return;
+    
+    if (selectionVertices.length > 0) {
+        // Draw selection polygon
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(selectionVertices[0].x, selectionVertices[0].y);
+        
+        for (let i = 1; i < selectionVertices.length; i++) {
+            ctx.lineTo(selectionVertices[i].x, selectionVertices[i].y);
+        }
+        
+        // Draw preview line to current mouse position (only if selection is not finished)
+        if (previewX !== null && previewY !== null && !isSelectionActive) {
+            ctx.lineTo(previewX, previewY);
+        } else if (isSelectionActive && selectionVertices.length > 2) {
+            // Close the polygon if selection is finished
+            ctx.closePath();
+        }
+        
+        // Stroke the path (will draw lines between vertices)
+        if (selectionVertices.length > 1 || (previewX !== null && previewY !== null) || (isSelectionActive && selectionVertices.length > 2)) {
+            ctx.stroke();
+        }
+        
+        // If only one vertex and no preview, draw a point to show it
+        if (selectionVertices.length === 1 && previewX === null && previewY === null) {
+            ctx.beginPath();
+            ctx.arc(selectionVertices[0].x, selectionVertices[0].y, 3, 0, 2 * Math.PI);
+            ctx.fillStyle = '#00ff00';
+            ctx.fill();
+        }
+        
+        ctx.setLineDash([]);
+        
+        // Fill selection with semi-transparent overlay
+        if (isSelectionActive && selectionVertices.length > 2) {
+            if (isSelectionInverted) {
+                // For inverted selection: show overlay in the frame area (between polygon and canvas edges)
+                // Same approach as normal selection, just with reversed boundaries
+                ctx.save();
+                
+                // Fill entire canvas with overlay (this fills the frame area)
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Create a path for the polygon
+                const path = new Path2D();
+                path.moveTo(selectionVertices[0].x, selectionVertices[0].y);
+                for (let i = 1; i < selectionVertices.length; i++) {
+                    path.lineTo(selectionVertices[i].x, selectionVertices[i].y);
+                }
+                path.closePath();
+                
+                // Restore the original image inside the polygon (preserve it like normal selection preserves outside)
+                if (baseImage) {
+                    ctx.save();
+                    ctx.clip(path);
+                    ctx.drawImage(baseImage, 0, 0);
+                    ctx.restore();
+                }
+                
+                ctx.restore();
+            } else {
+                // Normal selection - fill inside the polygon
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
+                ctx.fill();
+            }
+        }
+    }
+}
+
+function invertSelection() {
+    if (!canvas || !ctx || !isSelectionActive || selectionVertices.length < 3) return;
+    
+    // Toggle selection inversion (inside <-> outside)
+    isSelectionInverted = !isSelectionInverted;
+    
+    // Redraw to show the inverted selection
+    redrawCanvasWithSelection();
+}
+
+function handleFillClick(e) {
+    if (!canvas || !ctx) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = Math.floor((e.clientX - rect.left) * scaleX);
+    const y = Math.floor((e.clientY - rect.top) * scaleY);
+    
+    const colorPicker = document.getElementById('minipaintColorPicker');
+    const color = colorPicker ? colorPicker.value : '#000000';
+    
+    // If there's an active selection, fill the selection
+    if (isSelectionActive && selectionVertices.length > 2) {
+        fillSelection(color);
+    } else {
+        // Otherwise, do a flood fill at the clicked point
+        floodFill(x, y, color);
+    }
+}
+
+function fillSelection(color) {
+    if (!canvas || !ctx || !isSelectionActive || selectionVertices.length < 3) return;
+    
+    // Create a path for the selection
+    const path = new Path2D();
+    path.moveTo(selectionVertices[0].x, selectionVertices[0].y);
+    for (let i = 1; i < selectionVertices.length; i++) {
+        path.lineTo(selectionVertices[i].x, selectionVertices[i].y);
+    }
+    path.closePath();
+    
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = color;
+    
+    // Get the original image from history (before any overlays)
+    // IMPORTANT: First, restore the clean image (removing any selection overlays) BEFORE saving state
+    // This ensures we save a clean state without the selection overlay
+    const restoreImg = new Image();
+    restoreImg.onload = () => {
+        // First, clear the canvas and restore the clean image (removes any selection overlay/lines)
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(restoreImg, 0, 0);
+        
+        // NOW save the clean state (before applying fill) - this ensures no overlay is saved
+        saveStateBeforeAction();
+        stateSavedForCurrentAction = false;
+        
+        // Now fill entire canvas with selected color
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Create a path for the polygon
+        const path = new Path2D();
+        path.moveTo(selectionVertices[0].x, selectionVertices[0].y);
+        for (let i = 1; i < selectionVertices.length; i++) {
+            path.lineTo(selectionVertices[i].x, selectionVertices[i].y);
+        }
+        path.closePath();
+        
+        // Restore the original image in the area that should remain unchanged
+        // Both normal and inverted use the exact same code - only isSelectionInverted flag differs:
+        // 1. Fill entire canvas with color
+        // 2. Clip to preserve area (inside for inverted, outside for normal)
+        // 3. Restore original image in preserved area (fill stays in non-preserved area)
+        ctx.save();
+        
+        // Determine the clip area based on isSelectionInverted flag
+        // Same code structure for both, only the clip path differs
+        const clipPath = isSelectionInverted ? path : (() => {
+            // For normal: create inverse path (canvas with polygon as hole) using even-odd
+            const inverse = new Path2D();
+            inverse.rect(0, 0, canvas.width, canvas.height);
+            inverse.moveTo(selectionVertices[0].x, selectionVertices[0].y);
+            for (let i = 1; i < selectionVertices.length; i++) {
+                inverse.lineTo(selectionVertices[i].x, selectionVertices[i].y);
+            }
+            inverse.closePath();
+            return inverse;
+        })();
+        
+        // Clip to preserve area and restore image (same operation for both)
+        // This restores the original image in the preserved area, leaving fill in the other area
+        ctx.clip(clipPath, isSelectionInverted ? 'nonzero' : 'evenodd');
+        ctx.drawImage(restoreImg, 0, 0);
+        ctx.restore();
+        
+        // At this point, canvas has the fill applied and is completely clean
+        // (no selection overlay or lines, since we restored the clean image first)
+        // Save the clean state to history (without any selection overlay)
+        saveState();
+        stateSavedForCurrentAction = false;
+        
+        // After saving, redraw the selection overlay on top
+        redrawCanvasWithSelection();
+    };
+    
+    // Get the image from history (before the fill operation)
+    if (historyIndex >= 0 && historyIndex < historyStack.length) {
+        restoreImg.src = historyStack[historyIndex];
+    } else if (currentImage) {
+        restoreImg.src = currentImage.dataUrl;
+    }
+    // Early return, saveState will be called in onload
+}
+
+function floodFill(startX, startY, fillColor) {
+    if (!canvas || !ctx) return;
+    
+    // Save state before filling
+    saveStateBeforeAction();
+    stateSavedForCurrentAction = false;
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Get target color
+    const startIndex = (Math.floor(startY) * width + Math.floor(startX)) * 4;
+    const targetR = data[startIndex];
+    const targetG = data[startIndex + 1];
+    const targetB = data[startIndex + 2];
+    const targetA = data[startIndex + 3];
+    
+    // Parse fill color
+    const fillRgb = hexToRgb(fillColor);
+    if (!fillRgb) return;
+    
+    // If target color matches fill color, do nothing
+    if (targetR === fillRgb.r && targetG === fillRgb.g && targetB === fillRgb.b) {
+        return;
+    }
+    
+    // Flood fill algorithm
+    const stack = [[Math.floor(startX), Math.floor(startY)]];
+    const visited = new Set();
+    
+    while (stack.length > 0) {
+        const [x, y] = stack.pop();
+        const key = `${x},${y}`;
+        
+        if (visited.has(key)) continue;
+        if (x < 0 || x >= width || y < 0 || y >= height) continue;
+        
+        const index = (y * width + x) * 4;
+        const r = data[index];
+        const g = data[index + 1];
+        const b = data[index + 2];
+        const a = data[index + 3];
+        
+        // Check if pixel matches target color (with tolerance for anti-aliasing)
+        if (Math.abs(r - targetR) <= 1 && 
+            Math.abs(g - targetG) <= 1 && 
+            Math.abs(b - targetB) <= 1 &&
+            Math.abs(a - targetA) <= 1) {
+            
+            visited.add(key);
+            data[index] = fillRgb.r;
+            data[index + 1] = fillRgb.g;
+            data[index + 2] = fillRgb.b;
+            // Alpha stays the same
+            
+            // Add neighbors to stack
+            stack.push([x + 1, y]);
+            stack.push([x - 1, y]);
+            stack.push([x, y + 1]);
+            stack.push([x, y - 1]);
+        }
+    }
+    
+    ctx.putImageData(imageData, 0, 0);
+    
+    // Update history
+    saveState();
+    stateSavedForCurrentAction = false;
+}
+
+function updateInvertButtonVisibility() {
+    const invertBtn = document.getElementById('minipaintInvertBtn');
+    if (invertBtn) {
+        if (isSelectionActive && selectionVertices.length > 2) {
+            invertBtn.style.display = 'block';
+        } else {
+            invertBtn.style.display = 'none';
+        }
+    }
+}
+
+function updateFillButtonVisibility() {
+    const fillBtn = document.getElementById('minipaintToolFill');
+    if (fillBtn) {
+        // Show Fill button if there's any selection in progress (finished or unfinished)
+        if (selectionVertices.length > 0) {
+            fillBtn.style.display = 'block';
+        } else {
+            fillBtn.style.display = 'none';
+        }
+    }
 }
 

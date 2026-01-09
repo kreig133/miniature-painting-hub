@@ -271,9 +271,7 @@
                     <div class="minipaint-toolbar">
                         <div class="minipaint-tool-group">
                             <button class="minipaint-tool-btn active" id="minipaintToolBrush" data-tool="brush" type="button" title="Brush">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9.06 2.06A2 2 0 0 1 11 2h2a2 2 0 0 1 1.94 1.06l2.99 8.88A2 2 0 0 1 18 14h-1.5l-1 3H9.5l-1-3H7a2 2 0 0 1-1.94-2.06l2.99-8.88z"></path>
-                                </svg>
+                                <span style="font-size: 20px;">🖌️</span>
                             </button>
                             <button class="minipaint-tool-btn" id="minipaintToolEraser" data-tool="eraser" type="button" title="Eraser">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -297,6 +295,29 @@
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
+                            <button class="minipaint-tool-btn" id="minipaintToolColorPicker" data-tool="colorpicker" type="button" title="Color Picker">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="2" x2="12" y2="6"></line>
+                                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                                    <line x1="2" y1="12" x2="6" y2="12"></line>
+                                    <line x1="18" y1="12" x2="22" y2="12"></line>
+                                </svg>
+                            </button>
+                            <button class="minipaint-tool-btn" id="minipaintToolSelection" data-tool="selection" type="button" title="Selection">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path>
+                                </svg>
+                            </button>
+                            <button class="minipaint-invert-btn" id="minipaintInvertBtn" type="button" title="Invert Selection" style="display: none;">Invert Selection</button>
+                            <button class="minipaint-tool-btn" id="minipaintToolFill" data-tool="fill" type="button" title="Fill" style="display: none;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 11V9a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v2"></path>
+                                    <path d="M7 11h10l-1 8H8l-1-8z"></path>
+                                    <path d="M7 11V9a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"></path>
+                                    <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
                         </div>
                         <div class="minipaint-tool-group">
                             <div class="minipaint-color-source-toggle">
@@ -314,9 +335,16 @@
                             <input type="color" id="minipaintColorPicker" value="#000000" title="Color">
                             <input type="range" id="minipaintBrushSize" min="1" max="50" value="5" title="Brush Size">
                             <span id="minipaintBrushSizeValue">5</span>
+                            <label for="minipaintSmoothing" style="margin-left: 10px; font-size: 0.9rem; color: #666;">Smoothing:</label>
+                            <input type="range" id="minipaintSmoothing" min="0" max="100" value="50" title="Smoothing">
+                            <span id="minipaintSmoothingValue" style="min-width: 35px; text-align: right; font-size: 0.9rem; color: #666;">50</span>
                             <button class="minipaint-add-to-palette-btn" id="minipaintAddToPaletteBtn" type="button" title="Add to Palette">Add to Palette</button>
                         </div>
                         <div class="minipaint-tool-group">
+                            <label class="minipaint-debug-label" title="Debug Mode - Show History Gallery">
+                                <input type="checkbox" id="minipaintDebugMode" style="margin-right: 5px;">
+                                <span style="font-size: 0.85rem; color: #666;">Debug</span>
+                            </label>
                             <button class="minipaint-undo-btn" id="minipaintUndoBtn" type="button" title="Undo (Ctrl+Z / Cmd+Z)">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M3 7v6h6"></path>
@@ -327,85 +355,12 @@
                             <button class="minipaint-modal-close" id="minipaintModalClose" type="button" title="Close">&times;</button>
                         </div>
                     </div>
-                    <div class="minipaint-canvas-container">
-                        <canvas id="minipaintCanvas"></canvas>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Color Card Modal -->
-            <div id="colorCardModal" class="color-card-modal">
-                <div class="color-card-modal-content">
-                    <div class="color-card-modal-header">
-                        <h3>Color Card</h3>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <button class="color-card-print-btn" id="colorCardPrintBtn" type="button" title="Export to PDF">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                                    <rect x="6" y="14" width="12" height="8"></rect>
-                                </svg>
-                            </button>
-                            <button class="color-card-modal-close" id="colorCardModalClose" type="button">&times;</button>
-                        </div>
-                    </div>
-                    <div class="color-card-export-loading" id="colorCardExportLoading" style="display: none;">
-                        <div class="color-card-export-loading-spinner"></div>
-                        <div class="color-card-export-loading-text">Exporting to PDF...</div>
-                    </div>
-                    <div class="color-card-modal-body" id="colorCardModalBody">
-                        <div class="color-card-images-container">
-                            <!-- Left Image -->
-                            <div class="color-card-image-wrapper">
-                                <div class="color-card-image-container-left" id="colorCardImageContainerLeft">
-                                    <img id="colorCardImageLeft" src="" alt="Color Card Image Left" class="color-card-image">
-                                    <div class="color-boxes-overlay" id="colorBoxesOverlay"></div>
-                                </div>
-                                <div class="color-card-controls">
-                                    <button class="color-card-rotate-btn" id="rotateLeftBtn" type="button">Rotate 90°</button>
-                                    <div class="color-box-position-controls">
-                                        <label>Position:</label>
-                                        <button class="position-arrow-btn" id="positionTopBtn" data-position="top" type="button" title="Top">↑</button>
-                                        <button class="position-arrow-btn" id="positionLeftBtn" data-position="left" type="button" title="Left">←</button>
-                                        <button class="position-arrow-btn" id="positionBottomBtn" data-position="bottom" type="button" title="Bottom">↓</button>
-                                        <button class="position-arrow-btn" id="positionRightBtn" data-position="right" type="button" title="Right">→</button>
-                                    </div>
-                                    <div class="color-box-size-controls">
-                                        <label>Size:</label>
-                                        <input type="range" id="colorBoxSizeSlider" class="color-box-size-slider" min="0" max="100" value="16">
-                                        <span id="colorBoxSizeValue" class="color-box-size-value">16%</span>
-                                    </div>
-                                    <div class="color-box-padding-controls">
-                                        <label>Edge Padding:</label>
-                                        <input type="range" id="colorBoxPaddingSlider" class="color-box-size-slider" min="0" max="100" value="8">
-                                        <span id="colorBoxPaddingValue" class="color-box-size-value">8px</span>
-                                    </div>
-                                    <div class="color-box-gap-controls">
-                                        <label>Box Gap:</label>
-                                        <input type="range" id="colorBoxGapSlider" class="color-box-size-slider" min="0" max="100" value="8">
-                                        <span id="colorBoxGapValue" class="color-box-size-value">8px</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Right Image -->
-                            <div class="color-card-image-wrapper">
-                                <div class="color-card-image-container-right" id="colorCardImageContainerRight">
-                                    <img id="colorCardImageRight" src="" alt="Color Card Image Right" class="color-card-image">
-                                    <div class="right-overlay" id="rightOverlay"></div>
-                                </div>
-                                <div class="color-card-controls">
-                                    <button class="color-card-rotate-btn" id="rotateRightBtn" type="button">Rotate 90°</button>
-                                    <div class="color-box-padding-controls">
-                                        <label>Edge Padding:</label>
-                                        <input type="range" id="rightOverlayPaddingSlider" class="color-box-size-slider" min="0" max="100" value="25">
-                                        <span id="rightOverlayPaddingValue" class="color-box-size-value">10%</span>
-                                    </div>
-                                    <div class="color-box-padding-controls">
-                                        <label>List Scale:</label>
-                                        <input type="range" id="rightOverlayListScaleSlider" class="color-box-size-slider" min="50" max="500" value="100">
-                                        <span id="rightOverlayListScaleValue" class="color-box-size-value">100%</span>
-                                    </div>
-                                </div>
+                    <div class="minipaint-content-wrapper">
+                        <div class="minipaint-debug-gallery" id="minipaintDebugGallery" style="display: none;"></div>
+                        <div class="minipaint-canvas-container">
+                            <canvas id="minipaintCanvas"></canvas>
+                            <div class="minipaint-magnifying-glass" id="minipaintMagnifyingGlass" style="display: none;">
+                                <canvas id="minipaintMagnifyingGlassCanvas"></canvas>
                             </div>
                         </div>
                     </div>
