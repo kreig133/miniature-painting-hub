@@ -318,6 +318,12 @@
                                     <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
                                 </svg>
                             </button>
+                            <button class="minipaint-tool-btn" id="minipaintToolColorBalance" type="button" title="Color Balance" style="display: none;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                </svg>
+                            </button>
                         </div>
                         <div class="minipaint-tool-group">
                             <div class="minipaint-color-source-toggle">
@@ -362,6 +368,66 @@
                             <div class="minipaint-magnifying-glass" id="minipaintMagnifyingGlass" style="display: none;">
                                 <canvas id="minipaintMagnifyingGlassCanvas"></canvas>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Color Balance Modal -->
+            <div id="minipaintColorBalanceModal" class="minipaint-color-balance-modal">
+                <div class="minipaint-color-balance-modal-content">
+                    <div class="minipaint-color-balance-modal-header">
+                        <h3>Color Balance</h3>
+                        <button class="minipaint-color-balance-modal-close" id="minipaintColorBalanceModalClose" type="button">&times;</button>
+                    </div>
+                    <div class="minipaint-color-balance-modal-body">
+                        <div class="minipaint-color-balance-tone-range">
+                            <label>
+                                <input type="radio" name="colorBalanceToneRange" value="shadows" checked>
+                                <span>Shadows</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="colorBalanceToneRange" value="midtones">
+                                <span>Midtones</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="colorBalanceToneRange" value="highlights">
+                                <span>Highlights</span>
+                            </label>
+                        </div>
+                        <div class="minipaint-color-balance-sliders">
+                            <div class="minipaint-color-balance-slider-group">
+                                <label>Cyan - Red</label>
+                                <div class="minipaint-color-balance-slider-container">
+                                    <span class="minipaint-color-balance-slider-label">-100</span>
+                                    <input type="range" id="colorBalanceCyanRed" class="minipaint-color-balance-slider" min="-100" max="100" value="0">
+                                    <span class="minipaint-color-balance-slider-label">+100</span>
+                                    <span class="minipaint-color-balance-slider-value" id="colorBalanceCyanRedValue">0</span>
+                                </div>
+                            </div>
+                            <div class="minipaint-color-balance-slider-group">
+                                <label>Magenta - Green</label>
+                                <div class="minipaint-color-balance-slider-container">
+                                    <span class="minipaint-color-balance-slider-label">-100</span>
+                                    <input type="range" id="colorBalanceMagentaGreen" class="minipaint-color-balance-slider" min="-100" max="100" value="0">
+                                    <span class="minipaint-color-balance-slider-label">+100</span>
+                                    <span class="minipaint-color-balance-slider-value" id="colorBalanceMagentaGreenValue">0</span>
+                                </div>
+                            </div>
+                            <div class="minipaint-color-balance-slider-group">
+                                <label>Yellow - Blue</label>
+                                <div class="minipaint-color-balance-slider-container">
+                                    <span class="minipaint-color-balance-slider-label">-100</span>
+                                    <input type="range" id="colorBalanceYellowBlue" class="minipaint-color-balance-slider" min="-100" max="100" value="0">
+                                    <span class="minipaint-color-balance-slider-label">+100</span>
+                                    <span class="minipaint-color-balance-slider-value" id="colorBalanceYellowBlueValue">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="minipaint-color-balance-actions">
+                            <button class="minipaint-color-balance-reset-btn" id="minipaintColorBalanceReset" type="button">Reset</button>
+                            <button class="minipaint-color-balance-cancel-btn" id="minipaintColorBalanceCancel" type="button">Cancel</button>
+                            <button class="minipaint-color-balance-apply-btn" id="minipaintColorBalanceApply" type="button">Apply</button>
                         </div>
                     </div>
                 </div>

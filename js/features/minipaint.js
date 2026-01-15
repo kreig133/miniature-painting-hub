@@ -83,7 +83,7 @@ function openMinipaintEditor(image) {
     
     // Reset selection state
     clearSelection();
-    // Ensure Fill button is hidden initially
+    // Ensure Fill and Color Balance buttons are hidden initially
     updateFillButtonVisibility();
     
     const modal = document.getElementById('minipaintModal');
@@ -401,8 +401,9 @@ export function initMinipaint() {
                 btn.classList.add('active');
                 const newTool = btn.getAttribute('data-tool');
                 
-                // Clear selection when switching tools (except when switching to selection or fill tool)
-                if (currentTool === 'selection' && newTool !== 'selection' && newTool !== 'fill') {
+                // Clear selection when switching tools (except when switching to selection, fill, or colorbalance tool)
+                // Also skip if newTool is null/undefined (buttons without data-tool attribute like Color Balance)
+                if (currentTool === 'selection' && newTool && newTool !== 'selection' && newTool !== 'fill' && newTool !== 'colorbalance') {
                     clearSelection();
                 }
                 
@@ -498,6 +499,17 @@ export function initMinipaint() {
         invertBtn.addEventListener('click', () => {
             if (isSelectionActive && selectionVertices.length > 0) {
                 invertSelection();
+            }
+        });
+    }
+    
+    // Color Balance button
+    const colorBalanceBtn = document.getElementById('minipaintToolColorBalance');
+    if (colorBalanceBtn) {
+        colorBalanceBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent tool button handler from running
+            if (selectionVertices.length > 0) {
+                openColorBalanceModal();
             }
         });
     }
@@ -1140,6 +1152,41 @@ function redrawCanvasWithSelection(previewX = null, previewY = null) {
     }
 }
 
+function drawSelectionBordersOnly() {
+    if (!canvas || !ctx || selectionVertices.length === 0) return;
+    
+    // Draw only the selection borders (no fill overlay)
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(selectionVertices[0].x, selectionVertices[0].y);
+    
+    for (let i = 1; i < selectionVertices.length; i++) {
+        ctx.lineTo(selectionVertices[i].x, selectionVertices[i].y);
+    }
+    
+    // Close the polygon if selection is finished
+    if (isSelectionActive && selectionVertices.length > 2) {
+        ctx.closePath();
+    }
+    
+    // Stroke the path (will draw lines between vertices)
+    if (selectionVertices.length > 1 || (isSelectionActive && selectionVertices.length > 2)) {
+        ctx.stroke();
+    }
+    
+    // If only one vertex, draw a point to show it
+    if (selectionVertices.length === 1) {
+        ctx.beginPath();
+        ctx.arc(selectionVertices[0].x, selectionVertices[0].y, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = '#00ff00';
+        ctx.fill();
+    }
+    
+    ctx.setLineDash([]);
+}
+
 function drawSelectionOverlay(previewX = null, previewY = null, baseImage = null) {
     if (!canvas || !ctx) return;
     
@@ -1423,6 +1470,503 @@ function updateFillButtonVisibility() {
         } else {
             fillBtn.style.display = 'none';
         }
+    }
+    // Also update Color Balance button visibility
+    updateColorBalanceButtonVisibility();
+}
+
+function updateColorBalanceButtonVisibility() {
+    const colorBalanceBtn = document.getElementById('minipaintToolColorBalance');
+    if (colorBalanceBtn) {
+        // Show Color Balance button if there's any selection in progress (finished or unfinished)
+        if (selectionVertices.length > 0) {
+            colorBalanceBtn.style.display = 'block';
+        } else {
+            colorBalanceBtn.style.display = 'none';
+        }
+    }
+}
+
+// Color Balance functionality
+let colorBalanceValues = {
+    shadows: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 },
+    midtones: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 },
+    highlights: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 }
+};
+
+let currentToneRange = 'shadows';
+let colorBalanceOriginalImage = null; // Store original image for preview
+
+function openColorBalanceModal() {
+    if (!canvas || !ctx || selectionVertices.length === 0) return;
+    
+    const modal = document.getElementById('minipaintColorBalanceModal');
+    if (!modal) return;
+    
+    // Hide selection fill overlay but keep borders visible when Color Balance window is shown
+    // Get clean image from history and draw it with only selection borders (no fill)
+    // Store the original image for preview
+    const cleanImg = new Image();
+    cleanImg.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(cleanImg, 0, 0);
+        // Store the original image for preview
+        colorBalanceOriginalImage = new Image();
+        colorBalanceOriginalImage.onload = () => {
+            // Draw initial preview (with reset values, this will just show the original image with borders)
+            previewColorBalance();
+        };
+        colorBalanceOriginalImage.src = cleanImg.src;
+    };
+    if (historyIndex >= 0 && historyIndex < historyStack.length) {
+        cleanImg.src = historyStack[historyIndex];
+    } else if (currentImage) {
+        cleanImg.src = currentImage.dataUrl;
+    }
+    
+    // Reset values
+    colorBalanceValues = {
+        shadows: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 },
+        midtones: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 },
+        highlights: { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 }
+    };
+    currentToneRange = 'shadows';
+    
+    // Update UI
+    updateColorBalanceUI();
+    
+    // Show modal
+    modal.classList.add('active');
+    
+    // Initialize event listeners
+    initColorBalanceModal();
+    
+    // Initialize drag functionality
+    initColorBalanceDrag();
+    
+    // Add click-outside-to-close handler
+    setTimeout(() => {
+        document.addEventListener('click', handleColorBalanceOutsideClick, true);
+    }, 0);
+}
+
+function initColorBalanceModal() {
+    // Tone range radio buttons
+    const toneRangeInputs = document.querySelectorAll('input[name="colorBalanceToneRange"]');
+    toneRangeInputs.forEach(input => {
+        input.addEventListener('change', (e) => {
+            currentToneRange = e.target.value;
+            updateColorBalanceUI();
+            previewColorBalance(); // Apply preview immediately
+        });
+    });
+    
+    // Sliders
+    const cyanRedSlider = document.getElementById('colorBalanceCyanRed');
+    const magentaGreenSlider = document.getElementById('colorBalanceMagentaGreen');
+    const yellowBlueSlider = document.getElementById('colorBalanceYellowBlue');
+    
+    const cyanRedValue = document.getElementById('colorBalanceCyanRedValue');
+    const magentaGreenValue = document.getElementById('colorBalanceMagentaGreenValue');
+    const yellowBlueValue = document.getElementById('colorBalanceYellowBlueValue');
+    
+    if (cyanRedSlider && cyanRedValue) {
+        cyanRedSlider.addEventListener('input', (e) => {
+            colorBalanceValues[currentToneRange].cyanRed = parseInt(e.target.value);
+            cyanRedValue.textContent = e.target.value;
+            previewColorBalance(); // Apply preview immediately
+        });
+    }
+    
+    if (magentaGreenSlider && magentaGreenValue) {
+        magentaGreenSlider.addEventListener('input', (e) => {
+            colorBalanceValues[currentToneRange].magentaGreen = parseInt(e.target.value);
+            magentaGreenValue.textContent = e.target.value;
+            previewColorBalance(); // Apply preview immediately
+        });
+    }
+    
+    if (yellowBlueSlider && yellowBlueValue) {
+        yellowBlueSlider.addEventListener('input', (e) => {
+            colorBalanceValues[currentToneRange].yellowBlue = parseInt(e.target.value);
+            yellowBlueValue.textContent = e.target.value;
+            previewColorBalance(); // Apply preview immediately
+        });
+    }
+    
+    // Buttons
+    const resetBtn = document.getElementById('minipaintColorBalanceReset');
+    const cancelBtn = document.getElementById('minipaintColorBalanceCancel');
+    const applyBtn = document.getElementById('minipaintColorBalanceApply');
+    const closeBtn = document.getElementById('minipaintColorBalanceModalClose');
+    
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            colorBalanceValues[currentToneRange] = { cyanRed: 0, magentaGreen: 0, yellowBlue: 0 };
+            updateColorBalanceUI();
+            previewColorBalance(); // Apply preview immediately
+        });
+    }
+    
+    if (cancelBtn || closeBtn) {
+        const closeModal = () => {
+            closeColorBalanceModal(true); // Restore original image when canceling
+        };
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    }
+    
+    if (applyBtn) {
+        applyBtn.addEventListener('click', () => {
+            applyColorBalance();
+            closeColorBalanceModal(false); // Don't restore original when applying
+        });
+    }
+}
+
+function closeColorBalanceModal(restoreOriginal = false) {
+    const modal = document.getElementById('minipaintColorBalanceModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+    
+    // Remove click-outside handler
+    document.removeEventListener('click', handleColorBalanceOutsideClick, true);
+    
+    // If canceling (not applying), restore the original image
+    if (restoreOriginal && colorBalanceOriginalImage) {
+        const restoreImg = new Image();
+        restoreImg.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(restoreImg, 0, 0);
+            // Restore selection overlay
+            if (selectionVertices.length > 0) {
+                redrawCanvasWithSelection();
+            }
+        };
+        restoreImg.src = colorBalanceOriginalImage.src;
+    } else {
+        // Restore selection overlay when window is closed (selection is NOT affected)
+        if (selectionVertices.length > 0) {
+            redrawCanvasWithSelection();
+        }
+    }
+}
+
+function handleColorBalanceOutsideClick(e) {
+    const modal = document.getElementById('minipaintColorBalanceModal');
+    const modalContent = modal ? modal.querySelector('.minipaint-color-balance-modal-content') : null;
+    
+    if (modal && modal.classList.contains('active')) {
+        // Check if click is outside the modal content
+        if (modalContent && !modalContent.contains(e.target) && !e.target.closest('.minipaint-color-balance-modal-content')) {
+            closeColorBalanceModal(true); // Restore original image when clicking outside
+        }
+    }
+}
+
+function initColorBalanceDrag() {
+    const modal = document.getElementById('minipaintColorBalanceModal');
+    const header = modal ? modal.querySelector('.minipaint-color-balance-modal-header') : null;
+    
+    if (!modal || !header) return;
+    
+    let isDragging = false;
+    let currentX = 0;
+    let currentY = 0;
+    let initialX = 0;
+    let initialY = 0;
+    
+    header.addEventListener('mousedown', (e) => {
+        // Don't start drag if clicking on close button or other interactive elements
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            return;
+        }
+        
+        isDragging = true;
+        initialX = e.clientX - (parseFloat(modal.style.left) || 0);
+        initialY = e.clientY - (parseFloat(modal.style.top) || 0);
+        
+        // Get current position if not set
+        if (!modal.style.left || !modal.style.top) {
+            const rect = modal.getBoundingClientRect();
+            initialX = e.clientX - rect.left;
+            initialY = e.clientY - rect.top;
+        }
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        e.preventDefault();
+        
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+        
+        // Keep modal within viewport
+        const modalRect = modal.getBoundingClientRect();
+        const maxX = window.innerWidth - modalRect.width;
+        const maxY = window.innerHeight - modalRect.height;
+        
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+        
+        modal.style.left = currentX + 'px';
+        modal.style.top = currentY + 'px';
+        modal.style.transform = 'none';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+}
+
+function updateColorBalanceUI() {
+    const values = colorBalanceValues[currentToneRange];
+    
+    const cyanRedSlider = document.getElementById('colorBalanceCyanRed');
+    const magentaGreenSlider = document.getElementById('colorBalanceMagentaGreen');
+    const yellowBlueSlider = document.getElementById('colorBalanceYellowBlue');
+    
+    const cyanRedValue = document.getElementById('colorBalanceCyanRedValue');
+    const magentaGreenValue = document.getElementById('colorBalanceMagentaGreenValue');
+    const yellowBlueValue = document.getElementById('colorBalanceYellowBlueValue');
+    
+    if (cyanRedSlider && cyanRedValue) {
+        cyanRedSlider.value = values.cyanRed;
+        cyanRedValue.textContent = values.cyanRed;
+    }
+    
+    if (magentaGreenSlider && magentaGreenValue) {
+        magentaGreenSlider.value = values.magentaGreen;
+        magentaGreenValue.textContent = values.magentaGreen;
+    }
+    
+    if (yellowBlueSlider && yellowBlueValue) {
+        yellowBlueSlider.value = values.yellowBlue;
+        yellowBlueValue.textContent = values.yellowBlue;
+    }
+    
+    // Update radio buttons
+    const toneRangeInputs = document.querySelectorAll('input[name="colorBalanceToneRange"]');
+    toneRangeInputs.forEach(input => {
+        if (input.value === currentToneRange) {
+            input.checked = true;
+        }
+    });
+}
+
+function previewColorBalance() {
+    if (!canvas || !ctx || !colorBalanceOriginalImage || selectionVertices.length < 3) return;
+    
+    // Create a path for the selection
+    const path = new Path2D();
+    path.moveTo(selectionVertices[0].x, selectionVertices[0].y);
+    for (let i = 1; i < selectionVertices.length; i++) {
+        path.lineTo(selectionVertices[i].x, selectionVertices[i].y);
+    }
+    path.closePath();
+    
+    // Restore the original image (for preview, don't save to history)
+    const previewImg = new Image();
+    previewImg.onload = () => {
+        // Clear canvas and restore original image
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(previewImg, 0, 0);
+        
+        // Get image data for color balance processing
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Create a mask to identify pixels in selection
+        // For normal selection: process pixels inside path
+        // For inverted selection: process pixels outside path
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = canvas.width;
+        maskCanvas.height = canvas.height;
+        const maskCtx = maskCanvas.getContext('2d');
+        
+        if (isSelectionInverted) {
+            // For inverted: fill entire canvas, then erase the path area
+            maskCtx.fillStyle = 'white';
+            maskCtx.fillRect(0, 0, canvas.width, canvas.height);
+            maskCtx.globalCompositeOperation = 'destination-out';
+            maskCtx.fillStyle = 'black';
+            maskCtx.fill(path);
+        } else {
+            // For normal: fill only the path area
+            maskCtx.fillStyle = 'white';
+            maskCtx.fill(path);
+        }
+        
+        const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Apply color balance to pixels in selection
+        for (let i = 0; i < data.length; i += 4) {
+            const maskIndex = i;
+            const inSelection = maskData.data[maskIndex] > 128; // White pixel means in selection
+            
+            if (inSelection) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+                
+                // Determine tone range (shadows, midtones, highlights)
+                const brightness = (r + g + b) / 3;
+                let toneRange;
+                if (brightness < 85) {
+                    toneRange = 'shadows';
+                } else if (brightness < 170) {
+                    toneRange = 'midtones';
+                } else {
+                    toneRange = 'highlights';
+                }
+                
+                const values = colorBalanceValues[toneRange];
+                
+                // Apply color balance adjustments (GIMP-style)
+                // Cyan-Red: increase red = add to R, increase cyan = subtract from R
+                r = Math.max(0, Math.min(255, r + values.cyanRed));
+                
+                // Magenta-Green: increase magenta = add to R and B, increase green = add to G
+                r = Math.max(0, Math.min(255, r - values.magentaGreen * 0.5));
+                g = Math.max(0, Math.min(255, g + values.magentaGreen));
+                b = Math.max(0, Math.min(255, b - values.magentaGreen * 0.5));
+                
+                // Yellow-Blue: increase yellow = add to R and G, increase blue = add to B
+                r = Math.max(0, Math.min(255, r + values.yellowBlue * 0.5));
+                g = Math.max(0, Math.min(255, g + values.yellowBlue * 0.5));
+                b = Math.max(0, Math.min(255, b - values.yellowBlue));
+                
+                data[i] = Math.round(r);
+                data[i + 1] = Math.round(g);
+                data[i + 2] = Math.round(b);
+            }
+        }
+        
+        // Put modified image data back
+        ctx.putImageData(imageData, 0, 0);
+        
+        // Draw selection borders on top (no fill overlay)
+        drawSelectionBordersOnly();
+    };
+    
+    // Use the stored original image
+    previewImg.src = colorBalanceOriginalImage.src;
+}
+
+function applyColorBalance() {
+    if (!canvas || !ctx || selectionVertices.length < 3) return;
+    
+    // Create a path for the selection
+    const path = new Path2D();
+    path.moveTo(selectionVertices[0].x, selectionVertices[0].y);
+    for (let i = 1; i < selectionVertices.length; i++) {
+        path.lineTo(selectionVertices[i].x, selectionVertices[i].y);
+    }
+    path.closePath();
+    
+    // Get the original image from history (before any overlays)
+    // IMPORTANT: First, restore the clean image (removing any selection overlays) BEFORE saving state
+    // This ensures we save a clean state without the selection overlay
+    const restoreImg = new Image();
+    restoreImg.onload = () => {
+        // First, clear the canvas and restore the clean image (removes any selection overlay/lines)
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(restoreImg, 0, 0);
+        
+        // NOW save the clean state (before applying color balance) - this ensures no overlay is saved
+        saveStateBeforeAction();
+        stateSavedForCurrentAction = false;
+        
+        // Get image data for color balance processing
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Create a mask to identify pixels in selection
+        // For normal selection: process pixels inside path
+        // For inverted selection: process pixels outside path
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = canvas.width;
+        maskCanvas.height = canvas.height;
+        const maskCtx = maskCanvas.getContext('2d');
+        
+        if (isSelectionInverted) {
+            // For inverted: fill entire canvas, then erase the path area
+            maskCtx.fillStyle = 'white';
+            maskCtx.fillRect(0, 0, canvas.width, canvas.height);
+            maskCtx.globalCompositeOperation = 'destination-out';
+            maskCtx.fillStyle = 'black';
+            maskCtx.fill(path);
+        } else {
+            // For normal: fill only the path area
+            maskCtx.fillStyle = 'white';
+            maskCtx.fill(path);
+        }
+        
+        const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Apply color balance to pixels in selection
+        for (let i = 0; i < data.length; i += 4) {
+            const maskIndex = i;
+            const inSelection = maskData.data[maskIndex] > 128; // White pixel means in selection
+            
+            if (inSelection) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+                
+                // Determine tone range (shadows, midtones, highlights)
+                const brightness = (r + g + b) / 3;
+                let toneRange;
+                if (brightness < 85) {
+                    toneRange = 'shadows';
+                } else if (brightness < 170) {
+                    toneRange = 'midtones';
+                } else {
+                    toneRange = 'highlights';
+                }
+                
+                const values = colorBalanceValues[toneRange];
+                
+                // Apply color balance adjustments (GIMP-style)
+                // Cyan-Red: increase red = add to R, increase cyan = subtract from R
+                r = Math.max(0, Math.min(255, r + values.cyanRed));
+                
+                // Magenta-Green: increase magenta = add to R and B, increase green = add to G
+                r = Math.max(0, Math.min(255, r - values.magentaGreen * 0.5));
+                g = Math.max(0, Math.min(255, g + values.magentaGreen));
+                b = Math.max(0, Math.min(255, b - values.magentaGreen * 0.5));
+                
+                // Yellow-Blue: increase yellow = add to R and G, increase blue = add to B
+                r = Math.max(0, Math.min(255, r + values.yellowBlue * 0.5));
+                g = Math.max(0, Math.min(255, g + values.yellowBlue * 0.5));
+                b = Math.max(0, Math.min(255, b - values.yellowBlue));
+                
+                data[i] = Math.round(r);
+                data[i + 1] = Math.round(g);
+                data[i + 2] = Math.round(b);
+            }
+        }
+        
+        // Put modified image data back
+        ctx.putImageData(imageData, 0, 0);
+        
+        // At this point, canvas has the color balance applied and is completely clean
+        // (no selection overlay or lines, since we restored the clean image first)
+        // Save the clean state to history (without any selection overlay)
+        saveState();
+        stateSavedForCurrentAction = false;
+        
+        // After saving, redraw the selection overlay on top (selection is NOT cancelled)
+        redrawCanvasWithSelection();
+    };
+    
+    // Get image from history
+    if (historyIndex >= 0 && historyIndex < historyStack.length) {
+        restoreImg.src = historyStack[historyIndex];
+    } else if (currentImage) {
+        restoreImg.src = currentImage.dataUrl;
     }
 }
 
