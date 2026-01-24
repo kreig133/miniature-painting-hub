@@ -13,6 +13,56 @@ let drawCollectionPointsOnWheel = null;
 let drawPaintColorsPointsOnWheel = null;
 let getCurrentColor = null;
 
+// Storage key for shared filter state
+const FILTER_STATE_KEY = 'sharedFilterState';
+
+// Save filter state to localStorage (shared between all filter containers)
+function saveFilterState(producers, types) {
+    try {
+        const state = {
+            producers: producers,
+            types: types
+        };
+        localStorage.setItem(FILTER_STATE_KEY, JSON.stringify(state));
+    } catch (e) {
+        console.warn('Failed to save filter state:', e);
+    }
+}
+
+// Load filter state from localStorage
+function loadFilterState() {
+    try {
+        const saved = localStorage.getItem(FILTER_STATE_KEY);
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {
+        console.warn('Failed to load filter state:', e);
+    }
+    return null;
+}
+
+// Update saved filter state from current container
+function updateSavedFilterState(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const producerCheckboxes = container.querySelectorAll('input[data-filter-type="producer"]');
+    const typeCheckboxes = container.querySelectorAll('input[data-filter-type="type"]');
+    
+    const producers = {};
+    producerCheckboxes.forEach(cb => {
+        producers[cb.value] = cb.checked;
+    });
+    
+    const types = {};
+    typeCheckboxes.forEach(cb => {
+        types[cb.value] = cb.checked;
+    });
+    
+    saveFilterState(producers, types);
+}
+
 // Create filter checkboxes
 export function createFilterCheckboxes(containerId) {
     const container = document.getElementById(containerId);
@@ -77,6 +127,7 @@ export function createFilterCheckboxes(containerId) {
     producerNoneBtn.addEventListener('click', () => {
         const producerCheckboxes = producerGroup.querySelectorAll('input[data-filter-type="producer"]');
         producerCheckboxes.forEach(cb => cb.checked = false);
+        updateSavedFilterState(containerId);
         triggerReload(containerId);
     });
     
@@ -87,6 +138,7 @@ export function createFilterCheckboxes(containerId) {
     producerAllBtn.addEventListener('click', () => {
         const producerCheckboxes = producerGroup.querySelectorAll('input[data-filter-type="producer"]');
         producerCheckboxes.forEach(cb => cb.checked = true);
+        updateSavedFilterState(containerId);
         triggerReload(containerId);
     });
     
@@ -98,6 +150,9 @@ export function createFilterCheckboxes(containerId) {
     const producerCheckboxes = document.createElement('div');
     producerCheckboxes.className = 'filter-checkboxes';
     
+    // Load saved filter state
+    const savedState = loadFilterState();
+    
     producers.forEach(producer => {
         const checkboxItem = document.createElement('div');
         checkboxItem.className = 'filter-checkbox-item';
@@ -106,7 +161,10 @@ export function createFilterCheckboxes(containerId) {
         checkbox.type = 'checkbox';
         checkbox.id = `${containerId}-producer-${producer}`;
         checkbox.value = producer;
-        checkbox.checked = true; // All checked by default
+        // Use saved state if available, otherwise default to checked
+        checkbox.checked = savedState && savedState.producers && savedState.producers[producer] !== undefined 
+            ? savedState.producers[producer] 
+            : true;
         checkbox.dataset.filterType = 'producer';
         
         const label = document.createElement('label');
@@ -142,6 +200,7 @@ export function createFilterCheckboxes(containerId) {
     typeNoneBtn.addEventListener('click', () => {
         const typeCheckboxes = typeGroup.querySelectorAll('input[data-filter-type="type"]');
         typeCheckboxes.forEach(cb => cb.checked = false);
+        updateSavedFilterState(containerId);
         triggerReload(containerId);
     });
     
@@ -152,6 +211,7 @@ export function createFilterCheckboxes(containerId) {
     typeAllBtn.addEventListener('click', () => {
         const typeCheckboxes = typeGroup.querySelectorAll('input[data-filter-type="type"]');
         typeCheckboxes.forEach(cb => cb.checked = true);
+        updateSavedFilterState(containerId);
         triggerReload(containerId);
     });
     
@@ -171,7 +231,10 @@ export function createFilterCheckboxes(containerId) {
         checkbox.type = 'checkbox';
         checkbox.id = `${containerId}-type-${type}`;
         checkbox.value = type;
-        checkbox.checked = true; // All checked by default
+        // Use saved state if available, otherwise default to checked
+        checkbox.checked = savedState && savedState.types && savedState.types[type] !== undefined 
+            ? savedState.types[type] 
+            : true;
         checkbox.dataset.filterType = 'type';
         
         const label = document.createElement('label');
@@ -190,6 +253,8 @@ export function createFilterCheckboxes(containerId) {
     const allCheckboxes = container.querySelectorAll('input[type="checkbox"]');
     allCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', () => {
+            // Save filter state when any checkbox changes
+            updateSavedFilterState(containerId);
             triggerReload(containerId);
         });
     });
