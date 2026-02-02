@@ -1460,6 +1460,18 @@ export function loadPlanningTable(preserveMode = false) {
     // Export for filter changes
     window.loadPlanningManualSelectTable = loadManualSelectTable;
     
+    // Export function to update color wheel for planning manual select
+    window.updatePlanningManualSelectWheel = function() {
+        if (window.drawColorSelectWheelPoints) {
+            // Use getColors function so slider changes can re-fetch current data
+            window.drawColorSelectWheelPoints({
+                getColors: () => currentManualSelectTab === 'myCollection' ? getEffectiveMyCollection() : getMergedPaintColors(),
+                filterContainerId: 'planningManualSelectFilters',
+                tableId: 'planningManualSelectTable'
+            });
+        }
+    };
+    
     // Store selected paint for manual selection modal
     let currentManualSelectedPaint = null;
     
@@ -1523,6 +1535,12 @@ export function loadPlanningTable(preserveMode = false) {
             if (closeBtn) {
                 closeBtn.addEventListener('click', () => {
                     modal.classList.remove('active');
+                    if (window.hideColorSelectWheel) {
+                        window.hideColorSelectWheel();
+                    }
+                    if (window.resetColorSelectContext) {
+                        window.resetColorSelectContext();
+                    }
                     if (window.ungreyOtherWheels) {
                         window.ungreyOtherWheels();
                     }
@@ -1533,6 +1551,12 @@ export function loadPlanningTable(preserveMode = false) {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('active');
+                    if (window.hideColorSelectWheel) {
+                        window.hideColorSelectWheel();
+                    }
+                    if (window.resetColorSelectContext) {
+                        window.resetColorSelectContext();
+                    }
                     if (window.ungreyOtherWheels) {
                         window.ungreyOtherWheels();
                     }
@@ -1556,6 +1580,12 @@ export function loadPlanningTable(preserveMode = false) {
                     
                     // Close modal
                     modal.classList.remove('active');
+                    if (window.hideColorSelectWheel) {
+                        window.hideColorSelectWheel();
+                    }
+                    if (window.resetColorSelectContext) {
+                        window.resetColorSelectContext();
+                    }
                     if (window.ungreyOtherWheels) {
                         window.ungreyOtherWheels();
                     }
@@ -1617,6 +1647,12 @@ export function loadPlanningTable(preserveMode = false) {
                 
                 // Close modal
                 modal.classList.remove('active');
+                if (window.hideColorSelectWheel) {
+                    window.hideColorSelectWheel();
+                }
+                if (window.resetColorSelectContext) {
+                    window.resetColorSelectContext();
+                }
                 if (window.ungreyOtherWheels) {
                     window.ungreyOtherWheels();
                 }
@@ -1665,6 +1701,16 @@ export function loadPlanningTable(preserveMode = false) {
                 
                 // Reload table with new data source
                 loadManualSelectTable();
+                
+                // Update color wheel with new data source
+                if (window.drawColorSelectWheelPoints) {
+                    // Use getColors function so slider changes can re-fetch current data
+                    window.drawColorSelectWheelPoints({
+                        getColors: () => currentManualSelectTab === 'myCollection' ? getEffectiveMyCollection() : getMergedPaintColors(),
+                        filterContainerId: 'planningManualSelectFilters',
+                        tableId: 'planningManualSelectTable'
+                    });
+                }
             };
             
             newMyCollectionTab.addEventListener('click', () => switchTab('myCollection'));
@@ -1711,6 +1757,16 @@ export function loadPlanningTable(preserveMode = false) {
         // Show color select wheel if available
         if (window.showColorSelectWheel) {
             window.showColorSelectWheel();
+        }
+        
+        // Draw color wheel with correct data source (default is My Collection)
+        if (window.drawColorSelectWheelPoints) {
+            // Use getColors function so slider changes can re-fetch current data
+            window.drawColorSelectWheelPoints({
+                getColors: () => currentManualSelectTab === 'myCollection' ? getEffectiveMyCollection() : getMergedPaintColors(),
+                filterContainerId: 'planningManualSelectFilters',
+                tableId: 'planningManualSelectTable'
+            });
         }
     }
     

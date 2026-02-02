@@ -1212,6 +1212,10 @@ function initCustomMixModal() {
         }
     }
     
+    // Expose showColorSelectWheel and hideColorSelectWheel globally
+    window.showColorSelectWheel = showColorSelectWheel;
+    window.hideColorSelectWheel = hideColorSelectWheel;
+    
     // Grey out other floating wheels (expose globally)
     window.greyOutOtherWheels = function() {
         const wheels = [

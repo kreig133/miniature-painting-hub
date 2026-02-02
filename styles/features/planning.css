@@ -547,7 +547,7 @@
 /* Planning Add Color Modal */
 /* Planning Add Button */
 .planning-add-btn {
-    padding: 8px 16px;
+    padding: 10px 20px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;

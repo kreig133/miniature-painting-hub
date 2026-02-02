@@ -85,6 +85,10 @@ function openMinipaintEditor(image) {
     clearSelection();
     // Ensure Fill and Color Balance buttons are hidden initially
     updateFillButtonVisibility();
+    // Update brush size group visibility
+    updateBrushSizeGroupVisibility();
+    // Update smoothing group visibility
+    updateSmoothingGroupVisibility();
     
     const modal = document.getElementById('minipaintModal');
     if (!modal) return;
@@ -128,8 +132,10 @@ function openMinipaintEditor(image) {
     };
     img.src = image.dataUrl;
     
-    // Load palette colors
-    loadPaletteColors();
+    // Load palette colors based on toggle state
+    const colorSourceToggle = document.getElementById('minipaintColorSourceToggle');
+    const useAssignedPaints = colorSourceToggle ? colorSourceToggle.checked : false;
+    loadPaletteColors(useAssignedPaints);
 }
 
 // Fit canvas to container while maintaining aspect ratio
@@ -424,6 +430,10 @@ export function initMinipaint() {
                 
                 // Update Fill button visibility when tool changes (to show/hide dropdown)
                 updateFillButtonVisibility();
+                // Update Brush size group visibility when tool changes
+                updateBrushSizeGroupVisibility();
+                // Update Smoothing group visibility when tool changes
+                updateSmoothingGroupVisibility();
             });
         });
     }
@@ -481,7 +491,7 @@ export function initMinipaint() {
             
             // Reload palette colors if showing palette
             const colorSourceToggle = document.getElementById('minipaintColorSourceToggle');
-            const useAssignedPaints = colorSourceToggle && !colorSourceToggle.checked;
+            const useAssignedPaints = colorSourceToggle && colorSourceToggle.checked;
             if (!useAssignedPaints) {
                 loadPaletteColors(false);
             }
@@ -491,8 +501,12 @@ export function initMinipaint() {
     // Color source toggle (Palette / Assigned Paints)
     const colorSourceToggle = document.getElementById('minipaintColorSourceToggle');
     if (colorSourceToggle) {
+        // Load initial state based on toggle
+        const initialUseAssignedPaints = colorSourceToggle.checked;
+        loadPaletteColors(initialUseAssignedPaints);
+        
         colorSourceToggle.addEventListener('change', (e) => {
-            const useAssignedPaints = !e.target.checked; // When unchecked, use assigned paints
+            const useAssignedPaints = e.target.checked; // When checked (right/Assigned), use assigned paints
             loadPaletteColors(useAssignedPaints);
         });
     }
@@ -1651,6 +1665,40 @@ function updateColorBalanceButtonVisibility() {
             colorBalanceBtn.style.display = 'block';
         } else {
             colorBalanceBtn.style.display = 'none';
+        }
+    }
+}
+
+function updateBrushSizeGroupVisibility() {
+    const brushSizeGroup = document.getElementById('minipaintBrushSizeGroup');
+    
+    if (brushSizeGroup) {
+        // Show brush size group only when brush tool is selected
+        if (currentTool === 'brush') {
+            brushSizeGroup.style.display = 'flex';
+            // Apply darker background when visible
+            brushSizeGroup.style.background = '#e8e8e8';
+        } else {
+            brushSizeGroup.style.display = 'none';
+            // Remove background when hidden
+            brushSizeGroup.style.background = 'transparent';
+        }
+    }
+}
+
+function updateSmoothingGroupVisibility() {
+    const smoothingGroup = document.getElementById('minipaintSmoothingGroup');
+    
+    if (smoothingGroup) {
+        // Show smoothing group when brush tool is selected
+        if (currentTool === 'brush') {
+            smoothingGroup.style.display = 'flex';
+            // Apply darker background when visible
+            smoothingGroup.style.background = '#e8e8e8';
+        } else {
+            smoothingGroup.style.display = 'none';
+            // Remove background when hidden
+            smoothingGroup.style.background = 'transparent';
         }
     }
 }

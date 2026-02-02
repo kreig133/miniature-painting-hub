@@ -304,6 +304,10 @@ function triggerReload(containerId) {
         if (window.loadPlanningManualSelectTable) {
             window.loadPlanningManualSelectTable();
         }
+        // Also update color wheel
+        if (window.updatePlanningManualSelectWheel) {
+            window.updatePlanningManualSelectWheel();
+        }
     }
 }
 

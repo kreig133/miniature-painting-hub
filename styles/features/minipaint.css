@@ -198,6 +198,26 @@
     transition: background 0.2s;
 }
 
+.minipaint-brush-size-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: transparent;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.minipaint-smoothing-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: transparent;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
 .minipaint-blend-mode-select {
     height: 40px;
     padding: 8px 12px;

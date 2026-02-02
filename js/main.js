@@ -50,6 +50,7 @@ import {
 } from './features/colorWheel.js';
 import { initColorCard } from './features/colorCard.js';
 import { initReferences } from './features/references.js';
+import { initPaletteLib } from './features/paletteLib.js';
 
 // Initialize application
 export function init() {
@@ -187,6 +188,8 @@ export function init() {
     // Make planning functions available globally
     window.checkAndSetPlanningMode = checkAndSetPlanningMode;
     window.loadPlanningTable = loadPlanningTable;
+    window.loadPalette = loadPalette;
+    window.drawPalettePointsOnWheel = drawPalettePointsOnWheel;
     
     // 11. Initialize color wheel
     initColorWheel({
@@ -222,7 +225,10 @@ export function init() {
         addColorToPalette
     });
     
-    // 18. Color Card is now a separate page (colorCard.html)
+    // 18. Initialize palette library
+    initPaletteLib();
+    
+    // 19. Color Card is now a separate page (colorCard.html)
     
     // 19. References feature will be initialized when References tab is activated
     

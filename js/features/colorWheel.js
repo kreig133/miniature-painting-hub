@@ -1001,11 +1001,66 @@ export function initColorSelectFloatingWheel() {
     // Draw base wheel
     colorSelectWheel.drawBase();
     
+    // Store current context for slider callbacks
+    let currentColorSelectContext = {
+        getColors: () => getMergedPaintColors(),
+        filterContainerId: 'customMixColorSelectFilters',
+        tableId: 'customMixColorSelectTable'
+    };
+    
     // Expose draw function globally
-    window.drawColorSelectWheelPoints = function() {
-        colorSelectWheel.drawPoints(getMergedPaintColors(), {
-            filterContainerId: 'customMixColorSelectFilters'
+    // Accepts optional options: { colors, filterContainerId, getColors, tableId }
+    // If getColors is provided, it will be used for subsequent redraws (slider changes)
+    window.drawColorSelectWheelPoints = function(options = {}) {
+        // Update context if options provided
+        if (options.getColors) {
+            currentColorSelectContext.getColors = options.getColors;
+        } else if (options.colors) {
+            // If colors array provided directly, wrap in a getter
+            const colorsSnapshot = options.colors;
+            currentColorSelectContext.getColors = () => colorsSnapshot;
+        }
+        if (options.filterContainerId) {
+            currentColorSelectContext.filterContainerId = options.filterContainerId;
+        }
+        if (options.tableId) {
+            currentColorSelectContext.tableId = options.tableId;
+        }
+        
+        // Get colors using the current context getter
+        const colors = currentColorSelectContext.getColors();
+        const filterContainerId = currentColorSelectContext.filterContainerId;
+        
+        colorSelectWheel.drawPoints(colors, {
+            filterContainerId: filterContainerId
         });
+    };
+    
+    // Expose function to set color select context without drawing
+    window.setColorSelectContext = function(options = {}) {
+        if (options.getColors) {
+            currentColorSelectContext.getColors = options.getColors;
+        }
+        if (options.filterContainerId) {
+            currentColorSelectContext.filterContainerId = options.filterContainerId;
+        }
+        if (options.tableId) {
+            currentColorSelectContext.tableId = options.tableId;
+        }
+    };
+    
+    // Expose function to reset context to defaults
+    window.resetColorSelectContext = function() {
+        currentColorSelectContext = {
+            getColors: () => getMergedPaintColors(),
+            filterContainerId: 'customMixColorSelectFilters',
+            tableId: 'customMixColorSelectTable'
+        };
+    };
+    
+    // Expose function to get current table ID
+    window.getColorSelectTableId = function() {
+        return currentColorSelectContext.tableId;
     };
     
     // Handle clicks
@@ -1056,7 +1111,9 @@ export function initColorSelectFloatingWheel() {
  * Scroll to color in table and highlight
  */
 function scrollToAndHighlightColorInTable(color) {
-    const table = document.getElementById('customMixColorSelectTable');
+    // Get the current table ID from context
+    const tableId = window.getColorSelectTableId ? window.getColorSelectTableId() : 'customMixColorSelectTable';
+    const table = document.getElementById(tableId);
     if (!table) return;
     
     const tbody = table.querySelector('tbody');
@@ -1066,7 +1123,7 @@ function scrollToAndHighlightColorInTable(color) {
     const targetRgb = hexToRgb(color.hex);
     const targetRgbString = targetRgb ? `rgb(${targetRgb.r}, ${targetRgb.g}, ${targetRgb.b})` : color.hex;
     
-    highlightAndScrollToItem('#customMixColorSelectTable tbody tr', (row) => {
+    highlightAndScrollToItem(`#${tableId} tbody tr`, (row) => {
         const colorBox = row.querySelector('.color-box');
         if (!colorBox) return false;
         
