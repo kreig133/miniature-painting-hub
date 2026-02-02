@@ -421,6 +421,9 @@ export function initMinipaint() {
                         canvas.style.cursor = 'crosshair';
                     }
                 }
+                
+                // Update Fill button visibility when tool changes (to show/hide dropdown)
+                updateFillButtonVisibility();
             });
         });
     }
@@ -1293,8 +1296,88 @@ function handleFillClick(e) {
     }
 }
 
+// Helper functions for blend modes
+function rgbToHsl(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    
+    if (max === min) {
+        h = s = 0; // achromatic
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        
+        switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+            case g: h = ((b - r) / d + 2) / 6; break;
+            case b: h = ((r - g) / d + 4) / 6; break;
+        }
+    }
+    
+    return [h * 360, s, l];
+}
+
+function hslToRgb(h, s, l) {
+    h /= 360;
+    let r, g, b;
+    
+    if (s === 0) {
+        r = g = b = l; // achromatic
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+        
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+function parseColor(color) {
+    // Parse hex color (#RRGGBB or #RGB)
+    if (color.startsWith('#')) {
+        const hex = color.slice(1);
+        if (hex.length === 3) {
+            const r = parseInt(hex[0] + hex[0], 16);
+            const g = parseInt(hex[1] + hex[1], 16);
+            const b = parseInt(hex[2] + hex[2], 16);
+            return [r, g, b];
+        } else if (hex.length === 6) {
+            const r = parseInt(hex.slice(0, 2), 16);
+            const g = parseInt(hex.slice(2, 4), 16);
+            const b = parseInt(hex.slice(4, 6), 16);
+            return [r, g, b];
+        }
+    }
+    // Parse rgb(r, g, b)
+    const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (rgbMatch) {
+        return [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])];
+    }
+    return [0, 0, 0]; // default to black
+}
+
 function fillSelection(color) {
     if (!canvas || !ctx || !isSelectionActive || selectionVertices.length < 3) return;
+    
+    // Get blend mode from dropdown
+    const blendModeSelect = document.getElementById('minipaintBlendModeSelect');
+    const blendMode = blendModeSelect ? blendModeSelect.value : 'normal';
     
     // Create a path for the selection
     const path = new Path2D();
@@ -1320,44 +1403,96 @@ function fillSelection(color) {
         saveStateBeforeAction();
         stateSavedForCurrentAction = false;
         
-        // Now fill entire canvas with selected color
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Create a path for the polygon
-        const path = new Path2D();
-        path.moveTo(selectionVertices[0].x, selectionVertices[0].y);
-        for (let i = 1; i < selectionVertices.length; i++) {
-            path.lineTo(selectionVertices[i].x, selectionVertices[i].y);
-        }
-        path.closePath();
-        
-        // Restore the original image in the area that should remain unchanged
-        // Both normal and inverted use the exact same code - only isSelectionInverted flag differs:
-        // 1. Fill entire canvas with color
-        // 2. Clip to preserve area (inside for inverted, outside for normal)
-        // 3. Restore original image in preserved area (fill stays in non-preserved area)
-        ctx.save();
-        
-        // Determine the clip area based on isSelectionInverted flag
-        // Same code structure for both, only the clip path differs
-        const clipPath = isSelectionInverted ? path : (() => {
-            // For normal: create inverse path (canvas with polygon as hole) using even-odd
-            const inverse = new Path2D();
-            inverse.rect(0, 0, canvas.width, canvas.height);
-            inverse.moveTo(selectionVertices[0].x, selectionVertices[0].y);
+        if (blendMode === 'normal') {
+            // Normal mode: fill entire canvas with selected color
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Create a path for the polygon
+            const path = new Path2D();
+            path.moveTo(selectionVertices[0].x, selectionVertices[0].y);
             for (let i = 1; i < selectionVertices.length; i++) {
-                inverse.lineTo(selectionVertices[i].x, selectionVertices[i].y);
+                path.lineTo(selectionVertices[i].x, selectionVertices[i].y);
             }
-            inverse.closePath();
-            return inverse;
-        })();
-        
-        // Clip to preserve area and restore image (same operation for both)
-        // This restores the original image in the preserved area, leaving fill in the other area
-        ctx.clip(clipPath, isSelectionInverted ? 'nonzero' : 'evenodd');
-        ctx.drawImage(restoreImg, 0, 0);
-        ctx.restore();
+            path.closePath();
+            
+            // Restore the original image in the area that should remain unchanged
+            ctx.save();
+            
+            // Determine the clip area based on isSelectionInverted flag
+            const clipPath = isSelectionInverted ? path : (() => {
+                // For normal: create inverse path (canvas with polygon as hole) using even-odd
+                const inverse = new Path2D();
+                inverse.rect(0, 0, canvas.width, canvas.height);
+                inverse.moveTo(selectionVertices[0].x, selectionVertices[0].y);
+                for (let i = 1; i < selectionVertices.length; i++) {
+                    inverse.lineTo(selectionVertices[i].x, selectionVertices[i].y);
+                }
+                inverse.closePath();
+                return inverse;
+            })();
+            
+            // Clip to preserve area and restore image
+            ctx.clip(clipPath, isSelectionInverted ? 'nonzero' : 'evenodd');
+            ctx.drawImage(restoreImg, 0, 0);
+            ctx.restore();
+        } else if (blendMode === 'color') {
+            // Color mode: preserve luminance, replace chroma (GIMP behavior)
+            // Get image data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Parse fill color
+            const fillRgb = parseColor(color);
+            const [fillH, fillS, fillL] = rgbToHsl(fillRgb[0], fillRgb[1], fillRgb[2]);
+            
+            // Create a mask to identify pixels in selection
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = canvas.width;
+            maskCanvas.height = canvas.height;
+            const maskCtx = maskCanvas.getContext('2d');
+            
+            if (isSelectionInverted) {
+                // For inverted: fill entire canvas, then erase the path area
+                maskCtx.fillStyle = 'white';
+                maskCtx.fillRect(0, 0, canvas.width, canvas.height);
+                maskCtx.globalCompositeOperation = 'destination-out';
+                maskCtx.fillStyle = 'black';
+                maskCtx.fill(path);
+            } else {
+                // For normal: fill only the path area
+                maskCtx.fillStyle = 'white';
+                maskCtx.fill(path);
+            }
+            
+            const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            // Apply color blend mode to pixels in selection
+            for (let i = 0; i < data.length; i += 4) {
+                const maskIndex = i;
+                const inSelection = maskData.data[maskIndex] > 128; // White pixel means in selection
+                
+                if (inSelection) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    
+                    // Get original pixel's HSL
+                    const [origH, origS, origL] = rgbToHsl(r, g, b);
+                    
+                    // Preserve luminance, use fill color's hue and saturation
+                    const [newR, newG, newB] = hslToRgb(fillH, fillS, origL);
+                    
+                    data[i] = newR;
+                    data[i + 1] = newG;
+                    data[i + 2] = newB;
+                    // Alpha channel (data[i + 3]) remains unchanged
+                }
+            }
+            
+            // Put modified image data back
+            ctx.putImageData(imageData, 0, 0);
+        }
         
         // At this point, canvas has the fill applied and is completely clean
         // (no selection overlay or lines, since we restored the clean image first)
@@ -1463,14 +1598,47 @@ function updateInvertButtonVisibility() {
 
 function updateFillButtonVisibility() {
     const fillBtn = document.getElementById('minipaintToolFill');
+    const fillGroup = document.getElementById('minipaintFillGroup');
+    const blendModeSelect = document.getElementById('minipaintBlendModeSelect');
+    
+    const hasSelection = selectionVertices.length > 0;
+    const isFillTool = currentTool === 'fill';
+    
+    // Show Fill button if there's any selection in progress (finished or unfinished)
     if (fillBtn) {
-        // Show Fill button if there's any selection in progress (finished or unfinished)
-        if (selectionVertices.length > 0) {
-            fillBtn.style.display = 'block';
+        if (hasSelection) {
+            fillBtn.style.display = 'flex';
         } else {
             fillBtn.style.display = 'none';
         }
     }
+    
+    // Show dropdown only when Fill tool is selected AND there's a selection
+    if (blendModeSelect) {
+        if (isFillTool && hasSelection) {
+            blendModeSelect.style.display = 'block';
+            // Apply background to group when dropdown is visible
+            if (fillGroup) {
+                fillGroup.style.background = '#e8e8e8';
+            }
+        } else {
+            blendModeSelect.style.display = 'none';
+            // Remove background when dropdown is hidden
+            if (fillGroup) {
+                fillGroup.style.background = 'transparent';
+            }
+        }
+    }
+    
+    // Show/hide the group container - show if Fill button should be visible (hasSelection)
+    if (fillGroup) {
+        if (hasSelection) {
+            fillGroup.style.display = 'flex';
+        } else {
+            fillGroup.style.display = 'none';
+        }
+    }
+    
     // Also update Color Balance button visibility
     updateColorBalanceButtonVisibility();
 }

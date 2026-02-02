@@ -310,14 +310,20 @@
                                 </svg>
                             </button>
                             <button class="minipaint-invert-btn" id="minipaintInvertBtn" type="button" title="Invert Selection" style="display: none;">Invert Selection</button>
-                            <button class="minipaint-tool-btn" id="minipaintToolFill" data-tool="fill" type="button" title="Fill" style="display: none;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M19 11V9a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v2"></path>
-                                    <path d="M7 11h10l-1 8H8l-1-8z"></path>
-                                    <path d="M7 11V9a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"></path>
-                                    <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                                </svg>
-                            </button>
+                            <div class="minipaint-fill-group" id="minipaintFillGroup" style="display: none;">
+                                <button class="minipaint-tool-btn" id="minipaintToolFill" data-tool="fill" type="button" title="Fill">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M19 11V9a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v2"></path>
+                                        <path d="M7 11h10l-1 8H8l-1-8z"></path>
+                                        <path d="M7 11V9a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"></path>
+                                        <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                                <select class="minipaint-blend-mode-select" id="minipaintBlendModeSelect" title="Blend Mode">
+                                    <option value="normal">Normal</option>
+                                    <option value="color">Color</option>
+                                </select>
+                            </div>
                             <button class="minipaint-tool-btn" id="minipaintToolColorBalance" type="button" title="Color Balance" style="display: none;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <circle cx="12" cy="12" r="10"></circle>

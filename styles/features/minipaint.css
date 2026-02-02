@@ -188,6 +188,40 @@
     stroke: currentColor;
 }
 
+.minipaint-fill-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: transparent;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.minipaint-blend-mode-select {
+    height: 40px;
+    padding: 8px 12px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.minipaint-blend-mode-select:hover {
+    background: #f0f0f0;
+    border-color: #667eea;
+}
+
+.minipaint-blend-mode-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 .minipaint-color-source-toggle {
     margin-right: 10px;
     padding-right: 10px;
